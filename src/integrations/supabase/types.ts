@@ -14,16 +14,207 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      movies: {
+        Row: {
+          created_at: string
+          description: string | null
+          duration_minutes: number
+          genre: string | null
+          id: string
+          is_active: boolean
+          poster_url: string | null
+          rating: string | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          duration_minutes?: number
+          genre?: string | null
+          id?: string
+          is_active?: boolean
+          poster_url?: string | null
+          rating?: string | null
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          duration_minutes?: number
+          genre?: string | null
+          id?: string
+          is_active?: boolean
+          poster_url?: string | null
+          rating?: string | null
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          created_at: string
+          display_name: string | null
+          id: string
+          phone: string | null
+          role: Database["public"]["Enums"]["user_role"]
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          display_name?: string | null
+          id: string
+          phone?: string | null
+          role?: Database["public"]["Enums"]["user_role"]
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          display_name?: string | null
+          id?: string
+          phone?: string | null
+          role?: Database["public"]["Enums"]["user_role"]
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      seats: {
+        Row: {
+          id: string
+          seat_number: number
+          seat_row: string
+          seat_type: string
+        }
+        Insert: {
+          id?: string
+          seat_number: number
+          seat_row: string
+          seat_type?: string
+        }
+        Update: {
+          id?: string
+          seat_number?: number
+          seat_row?: string
+          seat_type?: string
+        }
+        Relationships: []
+      }
+      showings: {
+        Row: {
+          created_at: string
+          id: string
+          is_active: boolean
+          movie_id: string
+          start_time: string
+          ticket_price: number
+          total_seats: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          movie_id: string
+          start_time: string
+          ticket_price?: number
+          total_seats?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          movie_id?: string
+          start_time?: string
+          ticket_price?: number
+          total_seats?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "showings_movie_id_fkey"
+            columns: ["movie_id"]
+            isOneToOne: false
+            referencedRelation: "movies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tickets: {
+        Row: {
+          id: string
+          price: number
+          purchased_at: string
+          qr_code: string | null
+          seat_id: string
+          showing_id: string
+          status: string
+          tax_amount: number
+          tax_rate: number
+          total_price: number
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          price: number
+          purchased_at?: string
+          qr_code?: string | null
+          seat_id: string
+          showing_id: string
+          status?: string
+          tax_amount: number
+          tax_rate?: number
+          total_price: number
+          user_id: string
+        }
+        Update: {
+          id?: string
+          price?: number
+          purchased_at?: string
+          qr_code?: string | null
+          seat_id?: string
+          showing_id?: string
+          status?: string
+          tax_amount?: number
+          tax_rate?: number
+          total_price?: number
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tickets_seat_id_fkey"
+            columns: ["seat_id"]
+            isOneToOne: false
+            referencedRelation: "seats"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tickets_showing_id_fkey"
+            columns: ["showing_id"]
+            isOneToOne: false
+            referencedRelation: "showings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tickets_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      is_admin: { Args: never; Returns: boolean }
     }
     Enums: {
-      [_ in never]: never
+      user_role: "regular_user" | "admin"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +341,8 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      user_role: ["regular_user", "admin"],
+    },
   },
 } as const
