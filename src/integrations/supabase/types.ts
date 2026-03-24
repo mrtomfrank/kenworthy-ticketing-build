@@ -145,6 +145,7 @@ export type Database = {
           price: number
           purchased_at: string
           qr_code: string | null
+          scanned_at: string | null
           seat_id: string
           showing_id: string
           status: string
@@ -158,6 +159,7 @@ export type Database = {
           price: number
           purchased_at?: string
           qr_code?: string | null
+          scanned_at?: string | null
           seat_id: string
           showing_id: string
           status?: string
@@ -171,6 +173,7 @@ export type Database = {
           price?: number
           purchased_at?: string
           qr_code?: string | null
+          scanned_at?: string | null
           seat_id?: string
           showing_id?: string
           status?: string
