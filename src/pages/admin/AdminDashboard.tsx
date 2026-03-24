@@ -53,6 +53,14 @@ export default function AdminDashboard() {
     <div className="container py-8 px-4">
       <div className="flex items-center justify-between mb-8">
         <h1 className="font-display text-3xl font-bold">Admin Dashboard</h1>
+        <div className="flex gap-2">
+          <Button size="sm" variant="outline" asChild>
+            <Link to="/admin/pos"><ShoppingCart className="h-4 w-4 mr-1" /> Staff POS</Link>
+          </Button>
+          <Button size="sm" variant="outline" asChild>
+            <Link to="/admin/scanner"><ScanLine className="h-4 w-4 mr-1" /> Scanner</Link>
+          </Button>
+        </div>
       </div>
 
       {/* Stats */}
