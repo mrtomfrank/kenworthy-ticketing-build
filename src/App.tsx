@@ -13,6 +13,8 @@ import Profile from "./pages/Profile";
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import MovieForm from "./pages/admin/MovieForm";
 import ShowingForm from "./pages/admin/ShowingForm";
+import StaffPOS from "./pages/admin/StaffPOS";
+import TicketScanner from "./pages/admin/TicketScanner";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -35,6 +37,8 @@ const App = () => (
               <Route path="/admin/movies/:id" element={<MovieForm />} />
               <Route path="/admin/movies/new" element={<MovieForm />} />
               <Route path="/admin/showings/new" element={<ShowingForm />} />
+              <Route path="/admin/pos" element={<StaffPOS />} />
+              <Route path="/admin/scanner" element={<TicketScanner />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </Layout>
