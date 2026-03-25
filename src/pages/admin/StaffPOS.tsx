@@ -364,6 +364,7 @@ export default function StaffPOS() {
 
       toast.success(`Refunded ${refundingTx.seatLabels.length} ticket(s) — $${refundingTx.total.toFixed(2)}`);
       setRefundDialogOpen(false);
+      loadDailyStats();
       setRefundingTx(null);
 
       // Refresh taken seats so refunded seats become available again
