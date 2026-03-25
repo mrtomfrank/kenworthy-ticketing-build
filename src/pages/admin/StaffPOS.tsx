@@ -295,6 +295,7 @@ export default function StaffPOS() {
           addTransaction(ticketIds);
           toast.success(`Payment complete! ${selectedSeats.size} ticket(s) sold.`);
           resetForm();
+          loadDailyStats();
           await refreshTakenSeats();
           return;
         }
