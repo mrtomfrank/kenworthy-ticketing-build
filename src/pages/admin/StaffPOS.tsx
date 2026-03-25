@@ -8,13 +8,18 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import {
   ShoppingCart, Check, Film, DollarSign, User,
   CreditCard, Banknote, Loader2, CheckCircle2, AlertTriangle,
+  History, RotateCcw, X,
 } from 'lucide-react';
+import {
+  Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
+} from '@/components/ui/dialog';
 
 interface Seat {
   id: string;
@@ -28,6 +33,17 @@ interface ShowingOption {
   start_time: string;
   ticket_price: number;
   movie_title: string;
+}
+
+interface SessionTransaction {
+  id: string;
+  ticketIds: string[];
+  movieTitle: string;
+  seatLabels: string[];
+  total: number;
+  paymentMethod: PaymentMethod;
+  timestamp: Date;
+  refunded: boolean;
 }
 
 type PaymentMethod = 'cash' | 'card';
@@ -51,6 +67,12 @@ export default function StaffPOS() {
   const [paymentStatus, setPaymentStatus] = useState<PaymentStatus>('idle');
   const [squareCheckoutId, setSquareCheckoutId] = useState<string | null>(null);
   const [isSimulated, setIsSimulated] = useState(false);
+
+  // Transaction history (session-local)
+  const [transactions, setTransactions] = useState<SessionTransaction[]>([]);
+  const [refundDialogOpen, setRefundDialogOpen] = useState(false);
+  const [refundingTx, setRefundingTx] = useState<SessionTransaction | null>(null);
+  const [refunding, setRefunding] = useState(false);
 
   const TAX_RATE = 0.06;
 
@@ -86,7 +108,7 @@ export default function StaffPOS() {
     async function loadSeats() {
       const [seatsRes, ticketsRes] = await Promise.all([
         supabase.from('seats').select('*').order('seat_row').order('seat_number'),
-        supabase.from('tickets').select('seat_id').eq('showing_id', selectedShowingId),
+        supabase.from('tickets').select('seat_id').eq('showing_id', selectedShowingId).eq('status', 'confirmed'),
       ]);
       setSeats(seatsRes.data || []);
       setTakenSeatIds(new Set((ticketsRes.data || []).map(t => t.seat_id)));
@@ -110,7 +132,7 @@ export default function StaffPOS() {
     });
   };
 
-  const createTickets = useCallback(async () => {
+  const createTickets = useCallback(async (): Promise<string[]> => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error('Not authenticated');
 
@@ -126,17 +148,38 @@ export default function StaffPOS() {
       status: 'confirmed',
     }));
 
-    const { error } = await supabase.from('tickets').insert(ticketRows);
+    const { data, error } = await supabase.from('tickets').insert(ticketRows).select('id');
     if (error) throw error;
+    return (data || []).map(t => t.id);
   }, [selectedSeats, selectedShowingId, selectedShowing]);
 
   const refreshTakenSeats = useCallback(async () => {
     const { data: ticketsData } = await supabase
       .from('tickets')
       .select('seat_id')
-      .eq('showing_id', selectedShowingId);
+      .eq('showing_id', selectedShowingId)
+      .eq('status', 'confirmed');
     setTakenSeatIds(new Set((ticketsData || []).map(t => t.seat_id)));
   }, [selectedShowingId]);
+
+  const addTransaction = useCallback((ticketIds: string[]) => {
+    const seatLabels = Array.from(selectedSeats).map(seatId => {
+      const seat = seats.find(s => s.id === seatId);
+      return seat ? `${seat.seat_row}${seat.seat_number}` : '?';
+    });
+
+    const tx: SessionTransaction = {
+      id: crypto.randomUUID(),
+      ticketIds,
+      movieTitle: selectedShowing?.movie_title || 'Unknown',
+      seatLabels,
+      total,
+      paymentMethod,
+      timestamp: new Date(),
+      refunded: false,
+    };
+    setTransactions(prev => [tx, ...prev]);
+  }, [selectedSeats, seats, selectedShowing, total, paymentMethod]);
 
   const resetForm = useCallback(() => {
     setSelectedSeats(new Set());
@@ -150,7 +193,8 @@ export default function StaffPOS() {
   const handleCashSale = async () => {
     setSelling(true);
     try {
-      await createTickets();
+      const ticketIds = await createTickets();
+      addTransaction(ticketIds);
       toast.success(
         `${selectedSeats.size} ticket(s) sold (cash)! Receipt sent to ${patronEmail || patronPhone}`,
         { duration: 5000 }
@@ -188,9 +232,9 @@ export default function StaffPOS() {
       setIsSimulated(data.simulated || false);
 
       if (data.simulated || data.checkout?.status === 'COMPLETED') {
-        // Sandbox simulation — auto-complete
         setPaymentStatus('completed');
-        await createTickets();
+        const ticketIds = await createTickets();
+        addTransaction(ticketIds);
         toast.success(
           `${selectedSeats.size} ticket(s) sold (card)! ${data.simulated ? '(Sandbox simulation)' : ''}`,
           { duration: 5000 }
@@ -198,7 +242,6 @@ export default function StaffPOS() {
         resetForm();
         await refreshTakenSeats();
       } else {
-        // Real device — poll for completion
         pollCheckoutStatus(checkoutId);
       }
     } catch (err: any) {
@@ -210,7 +253,7 @@ export default function StaffPOS() {
   };
 
   const pollCheckoutStatus = useCallback(async (checkoutId: string) => {
-    const maxAttempts = 60; // 2 minutes at 2s intervals
+    const maxAttempts = 60;
     let attempt = 0;
 
     const poll = async () => {
@@ -225,7 +268,8 @@ export default function StaffPOS() {
         const status = data.checkout?.status;
         if (status === 'COMPLETED') {
           setPaymentStatus('completed');
-          await createTickets();
+          const ticketIds = await createTickets();
+          addTransaction(ticketIds);
           toast.success(`Payment complete! ${selectedSeats.size} ticket(s) sold.`);
           resetForm();
           await refreshTakenSeats();
@@ -253,7 +297,7 @@ export default function StaffPOS() {
     };
 
     poll();
-  }, [createTickets, resetForm, refreshTakenSeats, selectedSeats.size]);
+  }, [createTickets, addTransaction, resetForm, refreshTakenSeats, selectedSeats.size]);
 
   const handleSell = () => {
     if (!selectedShowingId || selectedSeats.size === 0) {
@@ -269,6 +313,43 @@ export default function StaffPOS() {
       handleCashSale();
     } else {
       handleCardSale();
+    }
+  };
+
+  const openRefundDialog = (tx: SessionTransaction) => {
+    setRefundingTx(tx);
+    setRefundDialogOpen(true);
+  };
+
+  const handleRefund = async () => {
+    if (!refundingTx) return;
+    setRefunding(true);
+    try {
+      // Update ticket status to 'refunded' in the database
+      const { error } = await supabase
+        .from('tickets')
+        .update({ status: 'refunded' })
+        .in('id', refundingTx.ticketIds);
+
+      if (error) throw error;
+
+      // Mark transaction as refunded locally
+      setTransactions(prev =>
+        prev.map(tx => tx.id === refundingTx.id ? { ...tx, refunded: true } : tx)
+      );
+
+      toast.success(`Refunded ${refundingTx.seatLabels.length} ticket(s) — $${refundingTx.total.toFixed(2)}`);
+      setRefundDialogOpen(false);
+      setRefundingTx(null);
+
+      // Refresh taken seats so refunded seats become available again
+      if (selectedShowingId) {
+        await refreshTakenSeats();
+      }
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to process refund');
+    } finally {
+      setRefunding(false);
     }
   };
 
@@ -375,6 +456,82 @@ export default function StaffPOS() {
               </CardContent>
             </Card>
           )}
+
+          {/* Transaction History */}
+          <Card className="glass">
+            <CardHeader>
+              <CardTitle className="font-display text-lg flex items-center gap-2">
+                <History className="h-5 w-5 text-primary" /> Session Transactions
+                {transactions.length > 0 && (
+                  <Badge variant="secondary" className="ml-auto">{transactions.length}</Badge>
+                )}
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {transactions.length === 0 ? (
+                <p className="text-muted-foreground text-sm text-center py-4">
+                  No transactions yet this session
+                </p>
+              ) : (
+                <div className="overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Time</TableHead>
+                        <TableHead>Movie</TableHead>
+                        <TableHead>Seats</TableHead>
+                        <TableHead>Payment</TableHead>
+                        <TableHead className="text-right">Total</TableHead>
+                        <TableHead className="text-right">Action</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {transactions.map(tx => (
+                        <TableRow key={tx.id} className={tx.refunded ? 'opacity-50' : ''}>
+                          <TableCell className="text-xs whitespace-nowrap">
+                            {format(tx.timestamp, 'h:mm a')}
+                          </TableCell>
+                          <TableCell className="text-sm font-medium max-w-[150px] truncate">
+                            {tx.movieTitle}
+                          </TableCell>
+                          <TableCell className="text-xs">
+                            {tx.seatLabels.join(', ')}
+                          </TableCell>
+                          <TableCell>
+                            <Badge variant="outline" className="text-xs">
+                              {tx.paymentMethod === 'cash' ? (
+                                <><Banknote className="h-3 w-3 mr-1" /> Cash</>
+                              ) : (
+                                <><CreditCard className="h-3 w-3 mr-1" /> Card</>
+                              )}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="text-right text-sm font-medium">
+                            ${tx.total.toFixed(2)}
+                          </TableCell>
+                          <TableCell className="text-right">
+                            {tx.refunded ? (
+                              <Badge variant="destructive" className="text-xs">Refunded</Badge>
+                            ) : (
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => openRefundDialog(tx)}
+                                className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                              >
+                                <RotateCcw className="h-3.5 w-3.5 mr-1" />
+                                Refund
+                              </Button>
+                            )}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              )}
+            </CardContent>
+          </Card>
         </div>
 
         {/* Right: Patron info + Payment + Order summary */}
@@ -511,9 +668,9 @@ export default function StaffPOS() {
                     </div>
                   )}
                   {paymentStatus === 'completed' && (
-                    <div className="flex items-center gap-2 p-3 rounded-lg bg-[hsl(var(--success))]/10 border border-[hsl(var(--success))]/30">
-                      <CheckCircle2 className="h-5 w-5 text-[hsl(var(--success))]" />
-                      <span className="text-sm text-[hsl(var(--success))] font-medium">
+                    <div className="flex items-center gap-2 p-3 rounded-lg bg-primary/10 border border-primary/30">
+                      <CheckCircle2 className="h-5 w-5 text-primary" />
+                      <span className="text-sm text-primary font-medium">
                         Payment complete!
                       </span>
                     </div>
@@ -558,6 +715,53 @@ export default function StaffPOS() {
           </Card>
         </div>
       </div>
+
+      {/* Refund confirmation dialog */}
+      <Dialog open={refundDialogOpen} onOpenChange={setRefundDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <RotateCcw className="h-5 w-5 text-destructive" />
+              Confirm Refund
+            </DialogTitle>
+            <DialogDescription>
+              This will cancel the tickets and free up the seats. This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          {refundingTx && (
+            <div className="space-y-3 py-2">
+              <div className="flex justify-between text-sm">
+                <span className="text-muted-foreground">Movie</span>
+                <span className="font-medium">{refundingTx.movieTitle}</span>
+              </div>
+              <div className="flex justify-between text-sm">
+                <span className="text-muted-foreground">Seats</span>
+                <span className="font-medium">{refundingTx.seatLabels.join(', ')}</span>
+              </div>
+              <div className="flex justify-between text-sm">
+                <span className="text-muted-foreground">Payment</span>
+                <Badge variant="outline">{refundingTx.paymentMethod === 'cash' ? 'Cash' : 'Card'}</Badge>
+              </div>
+              <div className="flex justify-between text-sm font-bold border-t border-border pt-2">
+                <span>Refund Amount</span>
+                <span className="text-destructive">${refundingTx.total.toFixed(2)}</span>
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setRefundDialogOpen(false)} disabled={refunding}>
+              Cancel
+            </Button>
+            <Button variant="destructive" onClick={handleRefund} disabled={refunding}>
+              {refunding ? (
+                <><Loader2 className="h-4 w-4 mr-1 animate-spin" /> Processing...</>
+              ) : (
+                <><RotateCcw className="h-4 w-4 mr-1" /> Process Refund</>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
