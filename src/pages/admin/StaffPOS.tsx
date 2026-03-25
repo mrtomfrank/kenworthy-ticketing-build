@@ -76,9 +76,32 @@ export default function StaffPOS() {
 
   const TAX_RATE = 0.06;
 
+  // Daily sales summary
+  const [dailyStats, setDailyStats] = useState({ revenue: 0, ticketCount: 0, refundCount: 0 });
+
+  const loadDailyStats = useCallback(async () => {
+    const todayStart = new Date();
+    todayStart.setHours(0, 0, 0, 0);
+    const { data } = await supabase
+      .from('tickets')
+      .select('total_price, status')
+      .gte('purchased_at', todayStart.toISOString());
+    if (data) {
+      const confirmed = data.filter(t => t.status === 'confirmed');
+      const refunded = data.filter(t => t.status === 'refunded');
+      setDailyStats({
+        revenue: confirmed.reduce((sum, t) => sum + Number(t.total_price), 0),
+        ticketCount: confirmed.length,
+        refundCount: refunded.length,
+      });
+    }
+  }, []);
+
   useEffect(() => {
     if (authLoading) return;
     if (!isAdmin) { navigate('/'); return; }
+
+    loadDailyStats();
 
     async function loadShowings() {
       const { data } = await supabase
