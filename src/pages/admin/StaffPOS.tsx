@@ -76,9 +76,32 @@ export default function StaffPOS() {
 
   const TAX_RATE = 0.06;
 
+  // Daily sales summary
+  const [dailyStats, setDailyStats] = useState({ revenue: 0, ticketCount: 0, refundCount: 0 });
+
+  const loadDailyStats = useCallback(async () => {
+    const todayStart = new Date();
+    todayStart.setHours(0, 0, 0, 0);
+    const { data } = await supabase
+      .from('tickets')
+      .select('total_price, status')
+      .gte('purchased_at', todayStart.toISOString());
+    if (data) {
+      const confirmed = data.filter(t => t.status === 'confirmed');
+      const refunded = data.filter(t => t.status === 'refunded');
+      setDailyStats({
+        revenue: confirmed.reduce((sum, t) => sum + Number(t.total_price), 0),
+        ticketCount: confirmed.length,
+        refundCount: refunded.length,
+      });
+    }
+  }, []);
+
   useEffect(() => {
     if (authLoading) return;
     if (!isAdmin) { navigate('/'); return; }
+
+    loadDailyStats();
 
     async function loadShowings() {
       const { data } = await supabase
@@ -272,6 +295,7 @@ export default function StaffPOS() {
           addTransaction(ticketIds);
           toast.success(`Payment complete! ${selectedSeats.size} ticket(s) sold.`);
           resetForm();
+          loadDailyStats();
           await refreshTakenSeats();
           return;
         }
@@ -340,6 +364,7 @@ export default function StaffPOS() {
 
       toast.success(`Refunded ${refundingTx.seatLabels.length} ticket(s) — $${refundingTx.total.toFixed(2)}`);
       setRefundDialogOpen(false);
+      loadDailyStats();
       setRefundingTx(null);
 
       // Refresh taken seats so refunded seats become available again
@@ -370,6 +395,43 @@ export default function StaffPOS() {
         <Badge variant="secondary">Box Office</Badge>
       </div>
       <p className="text-muted-foreground mb-8">Sell tickets to walk-in patrons</p>
+
+      {/* Daily Sales Summary */}
+      <div className="grid grid-cols-3 gap-4 mb-8">
+        <Card className="glass">
+          <CardContent className="pt-5 pb-4 flex items-center gap-3">
+            <div className="rounded-full bg-primary/10 p-2.5">
+              <DollarSign className="h-5 w-5 text-primary" />
+            </div>
+            <div>
+              <p className="text-xs text-muted-foreground">Today's Revenue</p>
+              <p className="text-xl font-bold">${dailyStats.revenue.toFixed(2)}</p>
+            </div>
+          </CardContent>
+        </Card>
+        <Card className="glass">
+          <CardContent className="pt-5 pb-4 flex items-center gap-3">
+            <div className="rounded-full bg-primary/10 p-2.5">
+              <ShoppingCart className="h-5 w-5 text-primary" />
+            </div>
+            <div>
+              <p className="text-xs text-muted-foreground">Tickets Sold</p>
+              <p className="text-xl font-bold">{dailyStats.ticketCount}</p>
+            </div>
+          </CardContent>
+        </Card>
+        <Card className="glass">
+          <CardContent className="pt-5 pb-4 flex items-center gap-3">
+            <div className="rounded-full bg-destructive/10 p-2.5">
+              <RotateCcw className="h-5 w-5 text-destructive" />
+            </div>
+            <div>
+              <p className="text-xs text-muted-foreground">Refunds</p>
+              <p className="text-xl font-bold">{dailyStats.refundCount}</p>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
 
       <div className="grid lg:grid-cols-3 gap-6">
         {/* Left: Showing selection + Seating map */}
