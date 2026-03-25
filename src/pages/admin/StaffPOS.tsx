@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/lib/auth';
@@ -11,7 +11,10 @@ import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
-import { ShoppingCart, Check, Film, Calendar, DollarSign, User } from 'lucide-react';
+import {
+  ShoppingCart, Check, Film, DollarSign, User,
+  CreditCard, Banknote, Loader2, CheckCircle2, AlertTriangle,
+} from 'lucide-react';
 
 interface Seat {
   id: string;
@@ -27,6 +30,9 @@ interface ShowingOption {
   movie_title: string;
 }
 
+type PaymentMethod = 'cash' | 'card';
+type PaymentStatus = 'idle' | 'processing' | 'completed' | 'failed';
+
 export default function StaffPOS() {
   const { isAdmin, loading: authLoading } = useAuth();
   const navigate = useNavigate();
@@ -40,6 +46,11 @@ export default function StaffPOS() {
   const [patronPhone, setPatronPhone] = useState('');
   const [selling, setSelling] = useState(false);
   const [loadingSeats, setLoadingSeats] = useState(false);
+
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('cash');
+  const [paymentStatus, setPaymentStatus] = useState<PaymentStatus>('idle');
+  const [squareCheckoutId, setSquareCheckoutId] = useState<string | null>(null);
+  const [isSimulated, setIsSimulated] = useState(false);
 
   const TAX_RATE = 0.06;
 
@@ -99,7 +110,152 @@ export default function StaffPOS() {
     });
   };
 
-  const handleSell = async () => {
+  const createTickets = useCallback(async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error('Not authenticated');
+
+    const ticketRows = Array.from(selectedSeats).map(seatId => ({
+      user_id: user.id,
+      showing_id: selectedShowingId,
+      seat_id: seatId,
+      price: Number(selectedShowing!.ticket_price),
+      tax_rate: TAX_RATE,
+      tax_amount: Math.round(Number(selectedShowing!.ticket_price) * TAX_RATE * 100) / 100,
+      total_price: Math.round(Number(selectedShowing!.ticket_price) * (1 + TAX_RATE) * 100) / 100,
+      qr_code: crypto.randomUUID(),
+      status: 'confirmed',
+    }));
+
+    const { error } = await supabase.from('tickets').insert(ticketRows);
+    if (error) throw error;
+  }, [selectedSeats, selectedShowingId, selectedShowing]);
+
+  const refreshTakenSeats = useCallback(async () => {
+    const { data: ticketsData } = await supabase
+      .from('tickets')
+      .select('seat_id')
+      .eq('showing_id', selectedShowingId);
+    setTakenSeatIds(new Set((ticketsData || []).map(t => t.seat_id)));
+  }, [selectedShowingId]);
+
+  const resetForm = useCallback(() => {
+    setSelectedSeats(new Set());
+    setPatronEmail('');
+    setPatronPhone('');
+    setPaymentStatus('idle');
+    setSquareCheckoutId(null);
+    setIsSimulated(false);
+  }, []);
+
+  const handleCashSale = async () => {
+    setSelling(true);
+    try {
+      await createTickets();
+      toast.success(
+        `${selectedSeats.size} ticket(s) sold (cash)! Receipt sent to ${patronEmail || patronPhone}`,
+        { duration: 5000 }
+      );
+      resetForm();
+      await refreshTakenSeats();
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to process sale');
+    } finally {
+      setSelling(false);
+    }
+  };
+
+  const handleCardSale = async () => {
+    setSelling(true);
+    setPaymentStatus('processing');
+
+    try {
+      const idempotencyKey = crypto.randomUUID();
+      const amountCents = Math.round(total * 100);
+
+      const { data, error } = await supabase.functions.invoke('square-terminal', {
+        body: {
+          action: 'create_checkout',
+          amount_cents: amountCents,
+          note: `${selectedShowing!.movie_title} — ${selectedSeats.size} ticket(s)`,
+          idempotency_key: idempotencyKey,
+        },
+      });
+
+      if (error) throw new Error(error.message || 'Failed to create checkout');
+
+      const checkoutId = data.checkout?.id;
+      setSquareCheckoutId(checkoutId);
+      setIsSimulated(data.simulated || false);
+
+      if (data.simulated || data.checkout?.status === 'COMPLETED') {
+        // Sandbox simulation — auto-complete
+        setPaymentStatus('completed');
+        await createTickets();
+        toast.success(
+          `${selectedSeats.size} ticket(s) sold (card)! ${data.simulated ? '(Sandbox simulation)' : ''}`,
+          { duration: 5000 }
+        );
+        resetForm();
+        await refreshTakenSeats();
+      } else {
+        // Real device — poll for completion
+        pollCheckoutStatus(checkoutId);
+      }
+    } catch (err: any) {
+      setPaymentStatus('failed');
+      toast.error(err.message || 'Payment failed');
+    } finally {
+      setSelling(false);
+    }
+  };
+
+  const pollCheckoutStatus = useCallback(async (checkoutId: string) => {
+    const maxAttempts = 60; // 2 minutes at 2s intervals
+    let attempt = 0;
+
+    const poll = async () => {
+      attempt++;
+      try {
+        const { data, error } = await supabase.functions.invoke('square-terminal', {
+          body: { action: 'get_checkout', checkout_id: checkoutId },
+        });
+
+        if (error) throw error;
+
+        const status = data.checkout?.status;
+        if (status === 'COMPLETED') {
+          setPaymentStatus('completed');
+          await createTickets();
+          toast.success(`Payment complete! ${selectedSeats.size} ticket(s) sold.`);
+          resetForm();
+          await refreshTakenSeats();
+          return;
+        }
+        if (status === 'CANCELED' || status === 'CANCEL_REQUESTED') {
+          setPaymentStatus('failed');
+          toast.error('Payment was canceled on the terminal.');
+          return;
+        }
+        if (attempt < maxAttempts) {
+          setTimeout(poll, 2000);
+        } else {
+          setPaymentStatus('failed');
+          toast.error('Payment timed out. Check the terminal.');
+        }
+      } catch {
+        if (attempt < maxAttempts) {
+          setTimeout(poll, 2000);
+        } else {
+          setPaymentStatus('failed');
+          toast.error('Lost connection while checking payment.');
+        }
+      }
+    };
+
+    poll();
+  }, [createTickets, resetForm, refreshTakenSeats, selectedSeats.size]);
+
+  const handleSell = () => {
     if (!selectedShowingId || selectedSeats.size === 0) {
       toast.error('Select a showing and at least one seat');
       return;
@@ -109,48 +265,10 @@ export default function StaffPOS() {
       return;
     }
 
-    setSelling(true);
-    try {
-      // Look up or create a profile for in-person sales
-      // For POS sales, we use the admin's user_id but attach patron contact info via qr_code metadata
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error('Not authenticated');
-
-      const ticketRows = Array.from(selectedSeats).map(seatId => ({
-        user_id: user.id,
-        showing_id: selectedShowingId,
-        seat_id: seatId,
-        price: Number(selectedShowing!.ticket_price),
-        tax_rate: TAX_RATE,
-        tax_amount: Math.round(Number(selectedShowing!.ticket_price) * TAX_RATE * 100) / 100,
-        total_price: Math.round(Number(selectedShowing!.ticket_price) * (1 + TAX_RATE) * 100) / 100,
-        qr_code: crypto.randomUUID(),
-        status: 'confirmed',
-      }));
-
-      const { error } = await supabase.from('tickets').insert(ticketRows);
-      if (error) throw error;
-
-      toast.success(
-        `${selectedSeats.size} ticket(s) sold! Digital ticket sent to ${patronEmail || patronPhone}`,
-        { duration: 5000 }
-      );
-
-      // Reset form
-      setSelectedSeats(new Set());
-      setPatronEmail('');
-      setPatronPhone('');
-
-      // Refresh taken seats
-      const { data: ticketsData } = await supabase
-        .from('tickets')
-        .select('seat_id')
-        .eq('showing_id', selectedShowingId);
-      setTakenSeatIds(new Set((ticketsData || []).map(t => t.seat_id)));
-    } catch (err: any) {
-      toast.error(err.message || 'Failed to process sale');
-    } finally {
-      setSelling(false);
+    if (paymentMethod === 'cash') {
+      handleCashSale();
+    } else {
+      handleCardSale();
     }
   };
 
@@ -259,7 +377,7 @@ export default function StaffPOS() {
           )}
         </div>
 
-        {/* Right: Patron info + order summary */}
+        {/* Right: Patron info + Payment + Order summary */}
         <div className="space-y-6">
           <Card className="glass sticky top-20">
             <CardHeader>
@@ -291,10 +409,61 @@ export default function StaffPOS() {
             </CardContent>
           </Card>
 
-          <Card className="glass sticky top-[22rem]">
+          {/* Payment Method */}
+          <Card className="glass">
             <CardHeader>
               <CardTitle className="font-display text-lg flex items-center gap-2">
-                <DollarSign className="h-5 w-5 text-primary" /> Order Summary
+                <DollarSign className="h-5 w-5 text-primary" /> Payment Method
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-2 gap-3">
+                <button
+                  onClick={() => setPaymentMethod('cash')}
+                  className={cn(
+                    'flex flex-col items-center gap-2 p-4 rounded-lg border-2 transition-all',
+                    paymentMethod === 'cash'
+                      ? 'border-primary bg-primary/10'
+                      : 'border-border hover:border-primary/50'
+                  )}
+                >
+                  <Banknote className={cn('h-8 w-8', paymentMethod === 'cash' ? 'text-primary' : 'text-muted-foreground')} />
+                  <span className={cn('text-sm font-medium', paymentMethod === 'cash' ? 'text-primary' : 'text-muted-foreground')}>
+                    Cash
+                  </span>
+                </button>
+                <button
+                  onClick={() => setPaymentMethod('card')}
+                  className={cn(
+                    'flex flex-col items-center gap-2 p-4 rounded-lg border-2 transition-all',
+                    paymentMethod === 'card'
+                      ? 'border-primary bg-primary/10'
+                      : 'border-border hover:border-primary/50'
+                  )}
+                >
+                  <CreditCard className={cn('h-8 w-8', paymentMethod === 'card' ? 'text-primary' : 'text-muted-foreground')} />
+                  <span className={cn('text-sm font-medium', paymentMethod === 'card' ? 'text-primary' : 'text-muted-foreground')}>
+                    Card (Square)
+                  </span>
+                </button>
+              </div>
+
+              {paymentMethod === 'card' && (
+                <div className="mt-3 p-3 rounded-lg bg-secondary/50 text-xs text-muted-foreground">
+                  <div className="flex items-center gap-1.5">
+                    <AlertTriangle className="h-3.5 w-3.5 text-primary shrink-0" />
+                    <span>Sandbox mode — payments are simulated, no real charges</span>
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Order Summary */}
+          <Card className="glass">
+            <CardHeader>
+              <CardTitle className="font-display text-lg flex items-center gap-2">
+                <ShoppingCart className="h-5 w-5 text-primary" /> Order Summary
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -331,14 +500,57 @@ export default function StaffPOS() {
                       <span className="text-primary">${total.toFixed(2)}</span>
                     </div>
                   </div>
+
+                  {/* Payment status indicator */}
+                  {paymentStatus === 'processing' && (
+                    <div className="flex items-center gap-2 p-3 rounded-lg bg-primary/10 border border-primary/30">
+                      <Loader2 className="h-5 w-5 text-primary animate-spin" />
+                      <span className="text-sm text-primary font-medium">
+                        Waiting for payment on terminal...
+                      </span>
+                    </div>
+                  )}
+                  {paymentStatus === 'completed' && (
+                    <div className="flex items-center gap-2 p-3 rounded-lg bg-[hsl(var(--success))]/10 border border-[hsl(var(--success))]/30">
+                      <CheckCircle2 className="h-5 w-5 text-[hsl(var(--success))]" />
+                      <span className="text-sm text-[hsl(var(--success))] font-medium">
+                        Payment complete!
+                      </span>
+                    </div>
+                  )}
+                  {paymentStatus === 'failed' && (
+                    <div className="flex items-center gap-2 p-3 rounded-lg bg-destructive/10 border border-destructive/30">
+                      <AlertTriangle className="h-5 w-5 text-destructive" />
+                      <span className="text-sm text-destructive font-medium">
+                        Payment failed — try again
+                      </span>
+                    </div>
+                  )}
+
                   <Button
                     className="w-full"
                     size="lg"
                     onClick={handleSell}
-                    disabled={selling}
+                    disabled={selling || paymentStatus === 'processing'}
                   >
-                    <Check className="h-4 w-4 mr-1" />
-                    {selling ? 'Processing...' : `Sell ${selectedSeats.size} Ticket(s)`}
+                    {selling || paymentStatus === 'processing' ? (
+                      <>
+                        <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+                        Processing...
+                      </>
+                    ) : (
+                      <>
+                        {paymentMethod === 'cash' ? (
+                          <Banknote className="h-4 w-4 mr-1" />
+                        ) : (
+                          <CreditCard className="h-4 w-4 mr-1" />
+                        )}
+                        {paymentMethod === 'cash'
+                          ? `Sell ${selectedSeats.size} Ticket(s) — Cash`
+                          : `Charge $${total.toFixed(2)} on Terminal`
+                        }
+                      </>
+                    )}
                   </Button>
                 </>
               )}
