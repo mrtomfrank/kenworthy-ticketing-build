@@ -431,6 +431,7 @@ export default function StaffPOS() {
         </Card>
       </div>
 
+      <div className="grid lg:grid-cols-3 gap-6">
         {/* Left: Showing selection + Seating map */}
         <div className="lg:col-span-2 space-y-6">
           {/* Showing selector */}
