@@ -169,6 +169,7 @@ export default function StaffPOS() {
       total_price: Math.round(Number(selectedShowing!.ticket_price) * (1 + TAX_RATE) * 100) / 100,
       qr_code: crypto.randomUUID(),
       status: 'confirmed',
+      payment_method: paymentMethod,
     }));
 
     const { data, error } = await supabase.from('tickets').insert(ticketRows).select('id');
