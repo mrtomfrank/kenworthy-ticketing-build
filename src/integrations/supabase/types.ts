@@ -142,6 +142,7 @@ export type Database = {
       tickets: {
         Row: {
           id: string
+          payment_method: string
           price: number
           purchased_at: string
           qr_code: string | null
@@ -156,6 +157,7 @@ export type Database = {
         }
         Insert: {
           id?: string
+          payment_method?: string
           price: number
           purchased_at?: string
           qr_code?: string | null
@@ -170,6 +172,7 @@ export type Database = {
         }
         Update: {
           id?: string
+          payment_method?: string
           price?: number
           purchased_at?: string
           qr_code?: string | null

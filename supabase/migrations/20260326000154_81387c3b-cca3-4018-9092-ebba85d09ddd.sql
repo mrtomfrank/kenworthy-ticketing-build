@@ -1,0 +1,1 @@
+ALTER TABLE public.tickets ADD COLUMN payment_method text NOT NULL DEFAULT 'online';
