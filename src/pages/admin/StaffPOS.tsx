@@ -8,25 +8,20 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
-import { cn } from '@/lib/utils';
 import {
-  ShoppingCart, Check, Film, DollarSign, User,
-  CreditCard, Banknote, Loader2, CheckCircle2, AlertTriangle,
-  History, RotateCcw, X,
+  ShoppingCart, Film, User, Loader2, CheckCircle2, AlertTriangle,
+  RotateCcw, Banknote, CreditCard,
 } from 'lucide-react';
 import {
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
 } from '@/components/ui/dialog';
-
-interface Seat {
-  id: string;
-  seat_row: string;
-  seat_number: number;
-  seat_type: string;
-}
+import { SeatMap } from '@/components/SeatMap';
+import { DailySalesSummary } from '@/components/pos/DailySalesSummary';
+import { TransactionHistory, type SessionTransaction } from '@/components/pos/TransactionHistory';
+import { PaymentMethodSelector, type PaymentMethod } from '@/components/pos/PaymentMethodSelector';
+import { type Seat, buildTicketRows, computeOrderTotals } from '@/lib/booking';
 
 interface ShowingOption {
   id: string;
@@ -35,18 +30,6 @@ interface ShowingOption {
   movie_title: string;
 }
 
-interface SessionTransaction {
-  id: string;
-  ticketIds: string[];
-  movieTitle: string;
-  seatLabels: string[];
-  total: number;
-  paymentMethod: PaymentMethod;
-  timestamp: Date;
-  refunded: boolean;
-}
-
-type PaymentMethod = 'cash' | 'card';
 type PaymentStatus = 'idle' | 'processing' | 'completed' | 'failed';
 
 export default function StaffPOS() {
@@ -68,15 +51,11 @@ export default function StaffPOS() {
   const [squareCheckoutId, setSquareCheckoutId] = useState<string | null>(null);
   const [isSimulated, setIsSimulated] = useState(false);
 
-  // Transaction history (session-local)
   const [transactions, setTransactions] = useState<SessionTransaction[]>([]);
   const [refundDialogOpen, setRefundDialogOpen] = useState(false);
   const [refundingTx, setRefundingTx] = useState<SessionTransaction | null>(null);
   const [refunding, setRefunding] = useState(false);
 
-  const TAX_RATE = 0.06;
-
-  // Daily sales summary
   const [dailyStats, setDailyStats] = useState({ revenue: 0, ticketCount: 0, refundCount: 0 });
 
   const loadDailyStats = useCallback(async () => {
@@ -141,9 +120,10 @@ export default function StaffPOS() {
   }, [selectedShowingId]);
 
   const selectedShowing = showings.find(s => s.id === selectedShowingId);
-  const subtotal = selectedSeats.size * (selectedShowing?.ticket_price || 0);
-  const tax = Math.round(subtotal * TAX_RATE * 100) / 100;
-  const total = Math.round((subtotal + tax) * 100) / 100;
+  const { subtotal, tax, total } = computeOrderTotals(
+    selectedSeats.size,
+    selectedShowing?.ticket_price || 0
+  );
 
   const toggleSeat = (seatId: string) => {
     if (takenSeatIds.has(seatId)) return;
@@ -155,22 +135,17 @@ export default function StaffPOS() {
     });
   };
 
-  const createTickets = useCallback(async (): Promise<string[]> => {
+  const createTickets = useCallback(async (method: PaymentMethod): Promise<string[]> => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error('Not authenticated');
 
-    const ticketRows = Array.from(selectedSeats).map(seatId => ({
-      user_id: user.id,
-      showing_id: selectedShowingId,
-      seat_id: seatId,
-      price: Number(selectedShowing!.ticket_price),
-      tax_rate: TAX_RATE,
-      tax_amount: Math.round(Number(selectedShowing!.ticket_price) * TAX_RATE * 100) / 100,
-      total_price: Math.round(Number(selectedShowing!.ticket_price) * (1 + TAX_RATE) * 100) / 100,
-      qr_code: crypto.randomUUID(),
-      status: 'confirmed',
-      payment_method: paymentMethod,
-    }));
+    const ticketRows = buildTicketRows({
+      selectedSeats,
+      userId: user.id,
+      showingId: selectedShowingId,
+      ticketPrice: selectedShowing!.ticket_price,
+      paymentMethod: method,
+    });
 
     const { data, error } = await supabase.from('tickets').insert(ticketRows).select('id');
     if (error) throw error;
@@ -186,7 +161,7 @@ export default function StaffPOS() {
     setTakenSeatIds(new Set((ticketsData || []).map(t => t.seat_id)));
   }, [selectedShowingId]);
 
-  const addTransaction = useCallback((ticketIds: string[]) => {
+  const addTransaction = useCallback((ticketIds: string[], method: PaymentMethod) => {
     const seatLabels = Array.from(selectedSeats).map(seatId => {
       const seat = seats.find(s => s.id === seatId);
       return seat ? `${seat.seat_row}${seat.seat_number}` : '?';
@@ -198,12 +173,12 @@ export default function StaffPOS() {
       movieTitle: selectedShowing?.movie_title || 'Unknown',
       seatLabels,
       total,
-      paymentMethod,
+      paymentMethod: method,
       timestamp: new Date(),
       refunded: false,
     };
     setTransactions(prev => [tx, ...prev]);
-  }, [selectedSeats, seats, selectedShowing, total, paymentMethod]);
+  }, [selectedSeats, seats, selectedShowing, total]);
 
   const resetForm = useCallback(() => {
     setSelectedSeats(new Set());
@@ -217,14 +192,15 @@ export default function StaffPOS() {
   const handleCashSale = async () => {
     setSelling(true);
     try {
-      const ticketIds = await createTickets();
-      addTransaction(ticketIds);
+      const ticketIds = await createTickets('cash');
+      addTransaction(ticketIds, 'cash');
       toast.success(
-        `${selectedSeats.size} ticket(s) sold (cash)! Receipt sent to ${patronEmail || patronPhone}`,
+        `${selectedSeats.size} ticket(s) sold (cash)!`,
         { duration: 5000 }
       );
       resetForm();
       await refreshTakenSeats();
+      loadDailyStats();
     } catch (err: any) {
       toast.error(err.message || 'Failed to process sale');
     } finally {
@@ -257,14 +233,15 @@ export default function StaffPOS() {
 
       if (data.simulated || data.checkout?.status === 'COMPLETED') {
         setPaymentStatus('completed');
-        const ticketIds = await createTickets();
-        addTransaction(ticketIds);
+        const ticketIds = await createTickets('card');
+        addTransaction(ticketIds, 'card');
         toast.success(
           `${selectedSeats.size} ticket(s) sold (card)! ${data.simulated ? '(Sandbox simulation)' : ''}`,
           { duration: 5000 }
         );
         resetForm();
         await refreshTakenSeats();
+        loadDailyStats();
       } else {
         pollCheckoutStatus(checkoutId);
       }
@@ -292,8 +269,8 @@ export default function StaffPOS() {
         const status = data.checkout?.status;
         if (status === 'COMPLETED') {
           setPaymentStatus('completed');
-          const ticketIds = await createTickets();
-          addTransaction(ticketIds);
+          const ticketIds = await createTickets('card');
+          addTransaction(ticketIds, 'card');
           toast.success(`Payment complete! ${selectedSeats.size} ticket(s) sold.`);
           resetForm();
           loadDailyStats();
@@ -341,16 +318,10 @@ export default function StaffPOS() {
     }
   };
 
-  const openRefundDialog = (tx: SessionTransaction) => {
-    setRefundingTx(tx);
-    setRefundDialogOpen(true);
-  };
-
   const handleRefund = async () => {
     if (!refundingTx) return;
     setRefunding(true);
     try {
-      // Update ticket status to 'refunded' in the database
       const { error } = await supabase
         .from('tickets')
         .update({ status: 'refunded' })
@@ -358,7 +329,6 @@ export default function StaffPOS() {
 
       if (error) throw error;
 
-      // Mark transaction as refunded locally
       setTransactions(prev =>
         prev.map(tx => tx.id === refundingTx.id ? { ...tx, refunded: true } : tx)
       );
@@ -368,7 +338,6 @@ export default function StaffPOS() {
       loadDailyStats();
       setRefundingTx(null);
 
-      // Refresh taken seats so refunded seats become available again
       if (selectedShowingId) {
         await refreshTakenSeats();
       }
@@ -383,11 +352,6 @@ export default function StaffPOS() {
     return <div className="container py-16 text-center text-muted-foreground">Loading...</div>;
   }
 
-  const seatRows = seats.reduce<Record<string, Seat[]>>((acc, seat) => {
-    (acc[seat.seat_row] = acc[seat.seat_row] || []).push(seat);
-    return acc;
-  }, {});
-
   return (
     <div className="container py-8 px-4 max-w-6xl">
       <div className="flex items-center gap-3 mb-2">
@@ -397,45 +361,14 @@ export default function StaffPOS() {
       </div>
       <p className="text-muted-foreground mb-8">Sell tickets to walk-in patrons</p>
 
-      {/* Daily Sales Summary */}
-      <div className="grid grid-cols-3 gap-4 mb-8">
-        <Card className="glass">
-          <CardContent className="pt-5 pb-4 flex items-center gap-3">
-            <div className="rounded-full bg-primary/10 p-2.5">
-              <DollarSign className="h-5 w-5 text-primary" />
-            </div>
-            <div>
-              <p className="text-xs text-muted-foreground">Today's Revenue</p>
-              <p className="text-xl font-bold">${dailyStats.revenue.toFixed(2)}</p>
-            </div>
-          </CardContent>
-        </Card>
-        <Card className="glass">
-          <CardContent className="pt-5 pb-4 flex items-center gap-3">
-            <div className="rounded-full bg-primary/10 p-2.5">
-              <ShoppingCart className="h-5 w-5 text-primary" />
-            </div>
-            <div>
-              <p className="text-xs text-muted-foreground">Tickets Sold</p>
-              <p className="text-xl font-bold">{dailyStats.ticketCount}</p>
-            </div>
-          </CardContent>
-        </Card>
-        <Card className="glass">
-          <CardContent className="pt-5 pb-4 flex items-center gap-3">
-            <div className="rounded-full bg-destructive/10 p-2.5">
-              <RotateCcw className="h-5 w-5 text-destructive" />
-            </div>
-            <div>
-              <p className="text-xs text-muted-foreground">Refunds</p>
-              <p className="text-xl font-bold">{dailyStats.refundCount}</p>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+      <DailySalesSummary
+        revenue={dailyStats.revenue}
+        ticketCount={dailyStats.ticketCount}
+        refundCount={dailyStats.refundCount}
+      />
 
       <div className="grid lg:grid-cols-3 gap-6">
-        {/* Left: Showing selection + Seating map */}
+        {/* Left: Showing selection + Seating map + Transactions */}
         <div className="lg:col-span-2 space-y-6">
           {/* Showing selector */}
           <Card className="glass">
@@ -465,136 +398,23 @@ export default function StaffPOS() {
             <Card className="glass">
               <CardHeader>
                 <CardTitle className="font-display text-lg">Seating Map</CardTitle>
-                <div className="flex gap-4 text-xs text-muted-foreground mt-2">
-                  <span className="flex items-center gap-1.5">
-                    <div className="h-4 w-4 rounded bg-secondary border border-border" /> Available
-                  </span>
-                  <span className="flex items-center gap-1.5">
-                    <div className="h-4 w-4 rounded bg-primary" /> Selected
-                  </span>
-                  <span className="flex items-center gap-1.5">
-                    <div className="h-4 w-4 rounded bg-muted-foreground/30" /> Taken
-                  </span>
-                </div>
               </CardHeader>
               <CardContent>
-                {loadingSeats ? (
-                  <p className="text-center text-muted-foreground py-8">Loading seats...</p>
-                ) : (
-                  <>
-                    <div className="mb-8 text-center">
-                      <div className="mx-auto w-3/4 h-2 bg-primary/30 rounded-full mb-1" />
-                      <p className="text-xs text-muted-foreground uppercase tracking-widest">Screen</p>
-                    </div>
-                    <div className="space-y-2 overflow-x-auto">
-                      {Object.entries(seatRows).sort().map(([row, rowSeats]) => (
-                        <div key={row} className="flex items-center gap-1.5 justify-center">
-                          <span className="w-6 text-xs text-muted-foreground font-medium text-center">{row}</span>
-                          {rowSeats.sort((a, b) => a.seat_number - b.seat_number).map(seat => {
-                            const taken = takenSeatIds.has(seat.id);
-                            const selected = selectedSeats.has(seat.id);
-                            return (
-                              <button
-                                key={seat.id}
-                                onClick={() => toggleSeat(seat.id)}
-                                disabled={taken}
-                                className={cn(
-                                  'h-7 w-7 rounded text-[10px] font-medium transition-all',
-                                  taken && 'bg-muted-foreground/30 cursor-not-allowed',
-                                  !taken && !selected && 'bg-secondary hover:bg-secondary/80 border border-border hover:border-primary/50',
-                                  selected && 'bg-primary text-primary-foreground glow-primary',
-                                )}
-                                title={`Row ${seat.seat_row} Seat ${seat.seat_number}`}
-                              >
-                                {seat.seat_number}
-                              </button>
-                            );
-                          })}
-                          <span className="w-6 text-xs text-muted-foreground font-medium text-center">{row}</span>
-                        </div>
-                      ))}
-                    </div>
-                  </>
-                )}
+                <SeatMap
+                  seats={seats}
+                  takenSeatIds={takenSeatIds}
+                  selectedSeats={selectedSeats}
+                  onToggleSeat={toggleSeat}
+                  loading={loadingSeats}
+                />
               </CardContent>
             </Card>
           )}
 
-          {/* Transaction History */}
-          <Card className="glass">
-            <CardHeader>
-              <CardTitle className="font-display text-lg flex items-center gap-2">
-                <History className="h-5 w-5 text-primary" /> Session Transactions
-                {transactions.length > 0 && (
-                  <Badge variant="secondary" className="ml-auto">{transactions.length}</Badge>
-                )}
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              {transactions.length === 0 ? (
-                <p className="text-muted-foreground text-sm text-center py-4">
-                  No transactions yet this session
-                </p>
-              ) : (
-                <div className="overflow-x-auto">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Time</TableHead>
-                        <TableHead>Movie</TableHead>
-                        <TableHead>Seats</TableHead>
-                        <TableHead>Payment</TableHead>
-                        <TableHead className="text-right">Total</TableHead>
-                        <TableHead className="text-right">Action</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {transactions.map(tx => (
-                        <TableRow key={tx.id} className={tx.refunded ? 'opacity-50' : ''}>
-                          <TableCell className="text-xs whitespace-nowrap">
-                            {format(tx.timestamp, 'h:mm a')}
-                          </TableCell>
-                          <TableCell className="text-sm font-medium max-w-[150px] truncate">
-                            {tx.movieTitle}
-                          </TableCell>
-                          <TableCell className="text-xs">
-                            {tx.seatLabels.join(', ')}
-                          </TableCell>
-                          <TableCell>
-                            <Badge variant="outline" className="text-xs">
-                              {tx.paymentMethod === 'cash' ? (
-                                <><Banknote className="h-3 w-3 mr-1" /> Cash</>
-                              ) : (
-                                <><CreditCard className="h-3 w-3 mr-1" /> Card</>
-                              )}
-                            </Badge>
-                          </TableCell>
-                          <TableCell className="text-right text-sm font-medium">
-                            ${tx.total.toFixed(2)}
-                          </TableCell>
-                          <TableCell className="text-right">
-                            {tx.refunded ? (
-                              <Badge variant="destructive" className="text-xs">Refunded</Badge>
-                            ) : (
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => openRefundDialog(tx)}
-                                className="text-destructive hover:text-destructive hover:bg-destructive/10"
-                              >
-                                <RotateCcw className="h-3.5 w-3.5 mr-1" />
-                                Refund
-                              </Button>
-                            )}
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </div>
-              )}
-            </CardContent>
-          </Card>
+          <TransactionHistory
+            transactions={transactions}
+            onRefund={(tx) => { setRefundingTx(tx); setRefundDialogOpen(true); }}
+          />
         </div>
 
         {/* Right: Patron info + Payment + Order summary */}
@@ -629,55 +449,7 @@ export default function StaffPOS() {
             </CardContent>
           </Card>
 
-          {/* Payment Method */}
-          <Card className="glass">
-            <CardHeader>
-              <CardTitle className="font-display text-lg flex items-center gap-2">
-                <DollarSign className="h-5 w-5 text-primary" /> Payment Method
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-2 gap-3">
-                <button
-                  onClick={() => setPaymentMethod('cash')}
-                  className={cn(
-                    'flex flex-col items-center gap-2 p-4 rounded-lg border-2 transition-all',
-                    paymentMethod === 'cash'
-                      ? 'border-primary bg-primary/10'
-                      : 'border-border hover:border-primary/50'
-                  )}
-                >
-                  <Banknote className={cn('h-8 w-8', paymentMethod === 'cash' ? 'text-primary' : 'text-muted-foreground')} />
-                  <span className={cn('text-sm font-medium', paymentMethod === 'cash' ? 'text-primary' : 'text-muted-foreground')}>
-                    Cash
-                  </span>
-                </button>
-                <button
-                  onClick={() => setPaymentMethod('card')}
-                  className={cn(
-                    'flex flex-col items-center gap-2 p-4 rounded-lg border-2 transition-all',
-                    paymentMethod === 'card'
-                      ? 'border-primary bg-primary/10'
-                      : 'border-border hover:border-primary/50'
-                  )}
-                >
-                  <CreditCard className={cn('h-8 w-8', paymentMethod === 'card' ? 'text-primary' : 'text-muted-foreground')} />
-                  <span className={cn('text-sm font-medium', paymentMethod === 'card' ? 'text-primary' : 'text-muted-foreground')}>
-                    Card (Square)
-                  </span>
-                </button>
-              </div>
-
-              {paymentMethod === 'card' && (
-                <div className="mt-3 p-3 rounded-lg bg-secondary/50 text-xs text-muted-foreground">
-                  <div className="flex items-center gap-1.5">
-                    <AlertTriangle className="h-3.5 w-3.5 text-primary shrink-0" />
-                    <span>Sandbox mode — payments are simulated, no real charges</span>
-                  </div>
-                </div>
-              )}
-            </CardContent>
-          </Card>
+          <PaymentMethodSelector paymentMethod={paymentMethod} onSelect={setPaymentMethod} />
 
           {/* Order Summary */}
           <Card className="glass">
