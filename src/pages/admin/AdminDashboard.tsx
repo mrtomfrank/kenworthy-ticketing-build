@@ -154,9 +154,14 @@ export default function AdminDashboard() {
                     {format(new Date(showing.start_time), 'MMM d, yyyy h:mm a')} • ${Number(showing.ticket_price).toFixed(2)}
                   </p>
                 </div>
-                <Button variant="ghost" size="sm" onClick={() => deleteShowing(showing.id)}>
-                  <Trash2 className="h-4 w-4 text-destructive" />
-                </Button>
+                <div className="flex gap-1">
+                  <Button variant="ghost" size="sm" asChild>
+                    <Link to={`/admin/showings/${showing.id}`}><Edit className="h-4 w-4" /></Link>
+                  </Button>
+                  <Button variant="ghost" size="sm" onClick={() => deleteShowing(showing.id)}>
+                    <Trash2 className="h-4 w-4 text-destructive" />
+                  </Button>
+                </div>
               </CardContent>
             </Card>
           ))}
