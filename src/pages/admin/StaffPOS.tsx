@@ -333,11 +333,11 @@ export default function StaffPOS() {
     };
 
     poll();
-  }, [createTickets, addTransaction, resetForm, refreshAfterSale, selectedSeats.size]);
+  }, [createTickets, addTransaction, resetForm, refreshAfterSale, ticketCount]);
 
   const handleSell = () => {
-    if (!selectedShowingId || selectedSeats.size === 0) {
-      toast.error('Select a showing and at least one seat');
+    if (!selectedShowingId || ticketCount === 0) {
+      toast.error('Select a showing and at least one ticket');
       return;
     }
     if (!patronEmail && !patronPhone) {
