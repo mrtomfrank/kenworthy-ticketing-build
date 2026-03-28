@@ -87,7 +87,7 @@ export default function StaffPOS() {
     async function loadShowings() {
       const { data } = await supabase
         .from('showings')
-        .select('id, start_time, ticket_price, movies(title)')
+        .select('id, start_time, ticket_price, total_seats, requires_seat_selection, movies(title)')
         .eq('is_active', true)
         .gte('start_time', new Date().toISOString())
         .order('start_time');
@@ -98,6 +98,8 @@ export default function StaffPOS() {
           start_time: s.start_time,
           ticket_price: s.ticket_price,
           movie_title: s.movies?.title || 'Unknown',
+          requires_seat_selection: s.requires_seat_selection ?? false,
+          total_seats: s.total_seats ?? 200,
         }))
       );
     }
