@@ -230,7 +230,7 @@ export default function StaffPOS() {
         { duration: 5000 }
       );
       resetForm();
-      await refreshTakenSeats();
+      await refreshAfterSale();
       loadDailyStats();
     } catch (err: any) {
       toast.error(err.message || 'Failed to process sale');
@@ -271,7 +271,7 @@ export default function StaffPOS() {
           { duration: 5000 }
         );
         resetForm();
-        await refreshTakenSeats();
+        await refreshAfterSale();
         loadDailyStats();
       } else {
         pollCheckoutStatus(checkoutId);
@@ -305,7 +305,7 @@ export default function StaffPOS() {
           toast.success(`Payment complete! ${selectedSeats.size} ticket(s) sold.`);
           resetForm();
           loadDailyStats();
-          await refreshTakenSeats();
+          await refreshAfterSale();
           return;
         }
         if (status === 'CANCELED' || status === 'CANCEL_REQUESTED') {
@@ -330,7 +330,7 @@ export default function StaffPOS() {
     };
 
     poll();
-  }, [createTickets, addTransaction, resetForm, refreshTakenSeats, selectedSeats.size]);
+  }, [createTickets, addTransaction, resetForm, refreshAfterSale, selectedSeats.size]);
 
   const handleSell = () => {
     if (!selectedShowingId || selectedSeats.size === 0) {
@@ -370,7 +370,7 @@ export default function StaffPOS() {
       setRefundingTx(null);
 
       if (selectedShowingId) {
-        await refreshTakenSeats();
+        await refreshAfterSale();
       }
     } catch (err: any) {
       toast.error(err.message || 'Failed to process refund');
