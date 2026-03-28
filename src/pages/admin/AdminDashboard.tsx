@@ -150,13 +150,23 @@ export default function AdminDashboard() {
               <CardContent className="p-4 flex items-center justify-between">
                 <div>
                   <p className="font-medium">{(showing as any).movies?.title || 'Unknown'}</p>
-                  <p className="text-sm text-muted-foreground">
-                    {format(new Date(showing.start_time), 'MMM d, yyyy h:mm a')} • ${Number(showing.ticket_price).toFixed(2)}
-                  </p>
+                  <div className="flex gap-2 items-center">
+                    <p className="text-sm text-muted-foreground">
+                      {format(new Date(showing.start_time), 'MMM d, yyyy h:mm a')} • ${Number(showing.ticket_price).toFixed(2)}
+                    </p>
+                    <Badge variant={showing.requires_seat_selection ? 'default' : 'secondary'} className="text-xs">
+                      {showing.requires_seat_selection ? 'Assigned Seats' : 'General Admission'}
+                    </Badge>
+                  </div>
                 </div>
-                <Button variant="ghost" size="sm" onClick={() => deleteShowing(showing.id)}>
-                  <Trash2 className="h-4 w-4 text-destructive" />
-                </Button>
+                <div className="flex gap-1">
+                  <Button variant="ghost" size="sm" asChild>
+                    <Link to={`/admin/showings/${showing.id}`}><Edit className="h-4 w-4" /></Link>
+                  </Button>
+                  <Button variant="ghost" size="sm" onClick={() => deleteShowing(showing.id)}>
+                    <Trash2 className="h-4 w-4 text-destructive" />
+                  </Button>
+                </div>
               </CardContent>
             </Card>
           ))}

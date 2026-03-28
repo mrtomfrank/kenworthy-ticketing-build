@@ -12,7 +12,7 @@ import { toast } from 'sonner';
 import { format } from 'date-fns';
 import {
   ShoppingCart, Film, User, Loader2, CheckCircle2, AlertTriangle,
-  RotateCcw, Banknote, CreditCard,
+  RotateCcw, Banknote, CreditCard, Minus, Plus,
 } from 'lucide-react';
 import {
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
@@ -28,6 +28,8 @@ interface ShowingOption {
   start_time: string;
   ticket_price: number;
   movie_title: string;
+  requires_seat_selection: boolean;
+  total_seats: number;
 }
 
 type PaymentStatus = 'idle' | 'processing' | 'completed' | 'failed';
@@ -45,6 +47,8 @@ export default function StaffPOS() {
   const [patronPhone, setPatronPhone] = useState('');
   const [selling, setSelling] = useState(false);
   const [loadingSeats, setLoadingSeats] = useState(false);
+  const [gaQuantity, setGaQuantity] = useState(0);
+  const [gaTicketsSold, setGaTicketsSold] = useState(0);
 
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('cash');
   const [paymentStatus, setPaymentStatus] = useState<PaymentStatus>('idle');
@@ -85,7 +89,7 @@ export default function StaffPOS() {
     async function loadShowings() {
       const { data } = await supabase
         .from('showings')
-        .select('id, start_time, ticket_price, movies(title)')
+        .select('id, start_time, ticket_price, total_seats, requires_seat_selection, movies(title)')
         .eq('is_active', true)
         .gte('start_time', new Date().toISOString())
         .order('start_time');
@@ -96,6 +100,8 @@ export default function StaffPOS() {
           start_time: s.start_time,
           ticket_price: s.ticket_price,
           movie_title: s.movies?.title || 'Unknown',
+          requires_seat_selection: s.requires_seat_selection ?? false,
+          total_seats: s.total_seats ?? 200,
         }))
       );
     }
@@ -105,23 +111,38 @@ export default function StaffPOS() {
   useEffect(() => {
     if (!selectedShowingId) return;
     setSelectedSeats(new Set());
+    setGaQuantity(0);
     setLoadingSeats(true);
 
+    const currentShowing = showings.find(s => s.id === selectedShowingId);
+
     async function loadSeats() {
-      const [seatsRes, ticketsRes] = await Promise.all([
-        supabase.from('seats').select('*').order('seat_row').order('seat_number'),
-        supabase.from('tickets').select('seat_id').eq('showing_id', selectedShowingId).eq('status', 'confirmed'),
-      ]);
-      setSeats(seatsRes.data || []);
-      setTakenSeatIds(new Set((ticketsRes.data || []).map(t => t.seat_id)));
+      if (currentShowing?.requires_seat_selection) {
+        const [seatsRes, ticketsRes] = await Promise.all([
+          supabase.from('seats').select('*').order('seat_row').order('seat_number'),
+          supabase.from('tickets').select('seat_id').eq('showing_id', selectedShowingId).eq('status', 'confirmed'),
+        ]);
+        setSeats(seatsRes.data || []);
+        setTakenSeatIds(new Set((ticketsRes.data || []).map(t => t.seat_id)));
+      } else {
+        const { count } = await supabase
+          .from('tickets')
+          .select('id', { count: 'exact' })
+          .eq('showing_id', selectedShowingId)
+          .eq('status', 'confirmed');
+        setGaTicketsSold(count || 0);
+      }
       setLoadingSeats(false);
     }
     loadSeats();
-  }, [selectedShowingId]);
+  }, [selectedShowingId, showings]);
 
   const selectedShowing = showings.find(s => s.id === selectedShowingId);
+  const isAssignedSeating = selectedShowing?.requires_seat_selection;
+  const ticketCount = isAssignedSeating ? selectedSeats.size : gaQuantity;
+  const gaAvailable = (selectedShowing?.total_seats || 200) - gaTicketsSold;
   const { subtotal, tax, total } = computeOrderTotals(
-    selectedSeats.size,
+    ticketCount,
     selectedShowing?.ticket_price || 0
   );
 
@@ -141,6 +162,7 @@ export default function StaffPOS() {
 
     const ticketRows = buildTicketRows({
       selectedSeats,
+      quantity: isAssignedSeating ? undefined : gaQuantity,
       userId: user.id,
       showingId: selectedShowingId,
       ticketPrice: selectedShowing!.ticket_price,
@@ -150,22 +172,33 @@ export default function StaffPOS() {
     const { data, error } = await supabase.from('tickets').insert(ticketRows).select('id');
     if (error) throw error;
     return (data || []).map(t => t.id);
-  }, [selectedSeats, selectedShowingId, selectedShowing]);
+  }, [selectedSeats, gaQuantity, isAssignedSeating, selectedShowingId, selectedShowing]);
 
-  const refreshTakenSeats = useCallback(async () => {
-    const { data: ticketsData } = await supabase
-      .from('tickets')
-      .select('seat_id')
-      .eq('showing_id', selectedShowingId)
-      .eq('status', 'confirmed');
-    setTakenSeatIds(new Set((ticketsData || []).map(t => t.seat_id)));
-  }, [selectedShowingId]);
+  const refreshAfterSale = useCallback(async () => {
+    if (isAssignedSeating) {
+      const { data: ticketsData } = await supabase
+        .from('tickets')
+        .select('seat_id')
+        .eq('showing_id', selectedShowingId)
+        .eq('status', 'confirmed');
+      setTakenSeatIds(new Set((ticketsData || []).map(t => t.seat_id)));
+    } else {
+      const { count } = await supabase
+        .from('tickets')
+        .select('id', { count: 'exact' })
+        .eq('showing_id', selectedShowingId)
+        .eq('status', 'confirmed');
+      setGaTicketsSold(count || 0);
+    }
+  }, [selectedShowingId, isAssignedSeating]);
 
   const addTransaction = useCallback((ticketIds: string[], method: PaymentMethod) => {
-    const seatLabels = Array.from(selectedSeats).map(seatId => {
-      const seat = seats.find(s => s.id === seatId);
-      return seat ? `${seat.seat_row}${seat.seat_number}` : '?';
-    });
+    const seatLabels = isAssignedSeating
+      ? Array.from(selectedSeats).map(seatId => {
+          const seat = seats.find(s => s.id === seatId);
+          return seat ? `${seat.seat_row}${seat.seat_number}` : '?';
+        })
+      : [`GA ×${gaQuantity}`];
 
     const tx: SessionTransaction = {
       id: crypto.randomUUID(),
@@ -178,10 +211,11 @@ export default function StaffPOS() {
       refunded: false,
     };
     setTransactions(prev => [tx, ...prev]);
-  }, [selectedSeats, seats, selectedShowing, total]);
+  }, [selectedSeats, seats, selectedShowing, total, isAssignedSeating, gaQuantity]);
 
   const resetForm = useCallback(() => {
     setSelectedSeats(new Set());
+    setGaQuantity(0);
     setPatronEmail('');
     setPatronPhone('');
     setPaymentStatus('idle');
@@ -199,7 +233,7 @@ export default function StaffPOS() {
         { duration: 5000 }
       );
       resetForm();
-      await refreshTakenSeats();
+      await refreshAfterSale();
       loadDailyStats();
     } catch (err: any) {
       toast.error(err.message || 'Failed to process sale');
@@ -240,7 +274,7 @@ export default function StaffPOS() {
           { duration: 5000 }
         );
         resetForm();
-        await refreshTakenSeats();
+        await refreshAfterSale();
         loadDailyStats();
       } else {
         pollCheckoutStatus(checkoutId);
@@ -274,7 +308,7 @@ export default function StaffPOS() {
           toast.success(`Payment complete! ${selectedSeats.size} ticket(s) sold.`);
           resetForm();
           loadDailyStats();
-          await refreshTakenSeats();
+          await refreshAfterSale();
           return;
         }
         if (status === 'CANCELED' || status === 'CANCEL_REQUESTED') {
@@ -299,11 +333,11 @@ export default function StaffPOS() {
     };
 
     poll();
-  }, [createTickets, addTransaction, resetForm, refreshTakenSeats, selectedSeats.size]);
+  }, [createTickets, addTransaction, resetForm, refreshAfterSale, ticketCount]);
 
   const handleSell = () => {
-    if (!selectedShowingId || selectedSeats.size === 0) {
-      toast.error('Select a showing and at least one seat');
+    if (!selectedShowingId || ticketCount === 0) {
+      toast.error('Select a showing and at least one ticket');
       return;
     }
     if (!patronEmail && !patronPhone) {
@@ -339,7 +373,7 @@ export default function StaffPOS() {
       setRefundingTx(null);
 
       if (selectedShowingId) {
-        await refreshTakenSeats();
+        await refreshAfterSale();
       }
     } catch (err: any) {
       toast.error(err.message || 'Failed to process refund');
@@ -393,22 +427,47 @@ export default function StaffPOS() {
             </CardContent>
           </Card>
 
-          {/* Seating map */}
+          {/* Seating map or GA quantity */}
           {selectedShowingId && (
-            <Card className="glass">
-              <CardHeader>
-                <CardTitle className="font-display text-lg">Seating Map</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <SeatMap
-                  seats={seats}
-                  takenSeatIds={takenSeatIds}
-                  selectedSeats={selectedSeats}
-                  onToggleSeat={toggleSeat}
-                  loading={loadingSeats}
-                />
-              </CardContent>
-            </Card>
+            isAssignedSeating ? (
+              <Card className="glass">
+                <CardHeader>
+                  <CardTitle className="font-display text-lg">Seating Map</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <SeatMap
+                    seats={seats}
+                    takenSeatIds={takenSeatIds}
+                    selectedSeats={selectedSeats}
+                    onToggleSeat={toggleSeat}
+                    loading={loadingSeats}
+                  />
+                </CardContent>
+              </Card>
+            ) : (
+              <Card className="glass">
+                <CardHeader>
+                  <CardTitle className="font-display text-lg">General Admission</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="flex items-center justify-between p-4 rounded-lg bg-secondary/50">
+                    <div>
+                      <p className="font-medium">Tickets</p>
+                      <p className="text-xs text-muted-foreground">{gaAvailable} available</p>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <Button variant="outline" size="icon" onClick={() => setGaQuantity(q => Math.max(0, q - 1))} disabled={gaQuantity === 0}>
+                        <Minus className="h-4 w-4" />
+                      </Button>
+                      <span className="text-xl font-bold w-8 text-center">{gaQuantity}</span>
+                      <Button variant="outline" size="icon" onClick={() => setGaQuantity(q => Math.min(gaAvailable, q + 1))} disabled={gaQuantity >= gaAvailable}>
+                        <Plus className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            )
           )}
 
           <TransactionHistory
@@ -459,8 +518,8 @@ export default function StaffPOS() {
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              {selectedSeats.size === 0 ? (
-                <p className="text-muted-foreground text-sm">Select a showing and seats to continue</p>
+              {ticketCount === 0 ? (
+                <p className="text-muted-foreground text-sm">Select a showing and tickets to continue</p>
               ) : (
                 <>
                   <p className="text-sm font-medium">{selectedShowing?.movie_title}</p>
@@ -468,15 +527,22 @@ export default function StaffPOS() {
                     {selectedShowing && format(new Date(selectedShowing.start_time), 'MMM d, yyyy h:mm a')}
                   </p>
                   <div className="space-y-1 text-sm">
-                    {Array.from(selectedSeats).map(seatId => {
-                      const seat = seats.find(s => s.id === seatId);
-                      return seat ? (
-                        <div key={seatId} className="flex justify-between">
-                          <span>Row {seat.seat_row}, Seat {seat.seat_number}</span>
-                          <span>${Number(selectedShowing!.ticket_price).toFixed(2)}</span>
-                        </div>
-                      ) : null;
-                    })}
+                    {isAssignedSeating ? (
+                      Array.from(selectedSeats).map(seatId => {
+                        const seat = seats.find(s => s.id === seatId);
+                        return seat ? (
+                          <div key={seatId} className="flex justify-between">
+                            <span>Row {seat.seat_row}, Seat {seat.seat_number}</span>
+                            <span>${Number(selectedShowing!.ticket_price).toFixed(2)}</span>
+                          </div>
+                        ) : null;
+                      })
+                    ) : (
+                      <div className="flex justify-between">
+                        <span>General Admission × {gaQuantity}</span>
+                        <span>${(gaQuantity * Number(selectedShowing!.ticket_price)).toFixed(2)}</span>
+                      </div>
+                    )}
                   </div>
                   <div className="border-t border-border pt-3 space-y-1 text-sm">
                     <div className="flex justify-between">
@@ -538,7 +604,7 @@ export default function StaffPOS() {
                           <CreditCard className="h-4 w-4 mr-1" />
                         )}
                         {paymentMethod === 'cash'
-                          ? `Sell ${selectedSeats.size} Ticket(s) — Cash`
+                          ? `Sell ${ticketCount} Ticket(s) — Cash`
                           : `Charge $${total.toFixed(2)} on Terminal`
                         }
                       </>

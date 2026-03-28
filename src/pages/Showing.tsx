@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
-import { Film, Calendar, Clock, DollarSign, Check } from 'lucide-react';
+import { Film, Calendar, Clock, DollarSign, Check, Minus, Plus } from 'lucide-react';
 import { SeatMap } from '@/components/SeatMap';
 import { type Seat, TAX_RATE, buildTicketRows, computeOrderTotals } from '@/lib/booking';
 
@@ -20,8 +20,14 @@ export default function Showing() {
   const [seats, setSeats] = useState<Seat[]>([]);
   const [takenSeatIds, setTakenSeatIds] = useState<Set<string>>(new Set());
   const [selectedSeats, setSelectedSeats] = useState<Set<string>>(new Set());
+  const [gaQuantity, setGaQuantity] = useState(0);
+  const [ticketsSold, setTicketsSold] = useState(0);
   const [loading, setLoading] = useState(true);
   const [purchasing, setPurchasing] = useState(false);
+
+  const isAssignedSeating = showing?.requires_seat_selection;
+  const totalSeats = showing?.total_seats || 200;
+  const gaAvailable = totalSeats - ticketsSold;
 
   useEffect(() => {
     async function load() {
@@ -30,15 +36,25 @@ export default function Showing() {
       if (!s) { navigate('/'); return; }
       setShowing(s);
 
-      const [movieRes, seatsRes, ticketsRes] = await Promise.all([
-        supabase.from('movies').select('*').eq('id', s.movie_id).single(),
-        supabase.from('seats').select('*').order('seat_row').order('seat_number'),
-        supabase.from('tickets').select('seat_id').eq('showing_id', id).eq('status', 'confirmed'),
-      ]);
+      const moviePromise = supabase.from('movies').select('*').eq('id', s.movie_id).single();
 
-      setMovie(movieRes.data);
-      setSeats(seatsRes.data || []);
-      setTakenSeatIds(new Set((ticketsRes.data || []).map(t => t.seat_id)));
+      if (s.requires_seat_selection) {
+        const [movieRes, seatsRes, ticketsRes] = await Promise.all([
+          moviePromise,
+          supabase.from('seats').select('*').order('seat_row').order('seat_number'),
+          supabase.from('tickets').select('seat_id').eq('showing_id', id).eq('status', 'confirmed'),
+        ]);
+        setMovie(movieRes.data);
+        setSeats(seatsRes.data || []);
+        setTakenSeatIds(new Set((ticketsRes.data || []).map(t => t.seat_id)));
+      } else {
+        const [movieRes, ticketsRes] = await Promise.all([
+          moviePromise,
+          supabase.from('tickets').select('id', { count: 'exact' }).eq('showing_id', id).eq('status', 'confirmed'),
+        ]);
+        setMovie(movieRes.data);
+        setTicketsSold(ticketsRes.count || 0);
+      }
       setLoading(false);
     }
     load();
@@ -54,19 +70,18 @@ export default function Showing() {
     });
   };
 
-  const { subtotal, tax, total } = computeOrderTotals(
-    selectedSeats.size,
-    showing?.ticket_price || 0
-  );
+  const ticketCount = isAssignedSeating ? selectedSeats.size : gaQuantity;
+  const { subtotal, tax, total } = computeOrderTotals(ticketCount, showing?.ticket_price || 0);
 
   const handlePurchase = async () => {
     if (!user) { navigate('/auth'); return; }
-    if (selectedSeats.size === 0) { toast.error('Please select at least one seat'); return; }
+    if (ticketCount === 0) { toast.error('Please select at least one ticket'); return; }
 
     setPurchasing(true);
     try {
       const ticketRows = buildTicketRows({
-        selectedSeats,
+        selectedSeats: isAssignedSeating ? selectedSeats : new Set<string>(),
+        quantity: isAssignedSeating ? undefined : gaQuantity,
         userId: user.id,
         showingId: id!,
         ticketPrice: showing.ticket_price,
@@ -76,7 +91,7 @@ export default function Showing() {
       const { error } = await supabase.from('tickets').insert(ticketRows);
       if (error) throw error;
 
-      toast.success(`${selectedSeats.size} ticket(s) purchased successfully!`);
+      toast.success(`${ticketCount} ticket(s) purchased successfully!`);
       navigate('/my-tickets');
     } catch (err: any) {
       toast.error(err.message || 'Failed to purchase tickets');
@@ -108,7 +123,7 @@ export default function Showing() {
                 <Clock className="h-4 w-4" /> {format(new Date(showing.start_time), 'h:mm a')}
               </span>
               <span className="flex items-center gap-1">
-                <DollarSign className="h-4 w-4" /> ${Number(showing.ticket_price).toFixed(2)} per seat
+                <DollarSign className="h-4 w-4" /> ${Number(showing.ticket_price).toFixed(2)} per ticket
               </span>
             </div>
           </div>
@@ -116,21 +131,59 @@ export default function Showing() {
       </div>
 
       <div className="grid lg:grid-cols-3 gap-6">
-        {/* Seating Map */}
+        {/* Seating Map or GA Quantity */}
         <div className="lg:col-span-2">
-          <Card className="glass">
-            <CardHeader>
-              <CardTitle className="font-display text-lg">Select Your Seats</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <SeatMap
-                seats={seats}
-                takenSeatIds={takenSeatIds}
-                selectedSeats={selectedSeats}
-                onToggleSeat={toggleSeat}
-              />
-            </CardContent>
-          </Card>
+          {isAssignedSeating ? (
+            <Card className="glass">
+              <CardHeader>
+                <CardTitle className="font-display text-lg">Select Your Seats</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <SeatMap
+                  seats={seats}
+                  takenSeatIds={takenSeatIds}
+                  selectedSeats={selectedSeats}
+                  onToggleSeat={toggleSeat}
+                />
+              </CardContent>
+            </Card>
+          ) : (
+            <Card className="glass">
+              <CardHeader>
+                <CardTitle className="font-display text-lg">General Admission</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <p className="text-sm text-muted-foreground">
+                  This is a general admission event — seating is first-come, first-served.
+                </p>
+                <div className="flex items-center justify-between p-4 rounded-lg bg-secondary/50">
+                  <div>
+                    <p className="font-medium">Tickets</p>
+                    <p className="text-xs text-muted-foreground">{gaAvailable} available</p>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      onClick={() => setGaQuantity(q => Math.max(0, q - 1))}
+                      disabled={gaQuantity === 0}
+                    >
+                      <Minus className="h-4 w-4" />
+                    </Button>
+                    <span className="text-xl font-bold w-8 text-center">{gaQuantity}</span>
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      onClick={() => setGaQuantity(q => Math.min(gaAvailable, q + 1))}
+                      disabled={gaQuantity >= gaAvailable}
+                    >
+                      <Plus className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          )}
         </div>
 
         {/* Checkout */}
@@ -140,20 +193,29 @@ export default function Showing() {
               <CardTitle className="font-display text-lg">Order Summary</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              {selectedSeats.size === 0 ? (
-                <p className="text-muted-foreground text-sm">Select seats to continue</p>
+              {ticketCount === 0 ? (
+                <p className="text-muted-foreground text-sm">
+                  {isAssignedSeating ? 'Select seats to continue' : 'Add tickets to continue'}
+                </p>
               ) : (
                 <>
                   <div className="space-y-2 text-sm">
-                    {Array.from(selectedSeats).map(seatId => {
-                      const seat = seats.find(s => s.id === seatId);
-                      return seat ? (
-                        <div key={seatId} className="flex justify-between">
-                          <span>Row {seat.seat_row}, Seat {seat.seat_number}</span>
-                          <span>${Number(showing.ticket_price).toFixed(2)}</span>
-                        </div>
-                      ) : null;
-                    })}
+                    {isAssignedSeating ? (
+                      Array.from(selectedSeats).map(seatId => {
+                        const seat = seats.find(s => s.id === seatId);
+                        return seat ? (
+                          <div key={seatId} className="flex justify-between">
+                            <span>Row {seat.seat_row}, Seat {seat.seat_number}</span>
+                            <span>${Number(showing.ticket_price).toFixed(2)}</span>
+                          </div>
+                        ) : null;
+                      })
+                    ) : (
+                      <div className="flex justify-between">
+                        <span>General Admission × {gaQuantity}</span>
+                        <span>${(gaQuantity * Number(showing.ticket_price)).toFixed(2)}</span>
+                      </div>
+                    )}
                   </div>
                   <div className="border-t border-border pt-3 space-y-1 text-sm">
                     <div className="flex justify-between">
@@ -176,7 +238,7 @@ export default function Showing() {
                     disabled={purchasing}
                   >
                     <Check className="h-4 w-4 mr-1" />
-                    {purchasing ? 'Processing...' : `Purchase ${selectedSeats.size} Ticket(s)`}
+                    {purchasing ? 'Processing...' : `Purchase ${ticketCount} Ticket(s)`}
                   </Button>
                   <p className="text-xs text-muted-foreground text-center">
                     Simulated checkout — no real charge

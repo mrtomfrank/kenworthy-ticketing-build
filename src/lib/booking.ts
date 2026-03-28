@@ -9,33 +9,55 @@ export const TAX_RATE = 0.06;
 
 export function buildTicketRows({
   selectedSeats,
+  quantity,
   userId,
   showingId,
   ticketPrice,
   paymentMethod,
 }: {
   selectedSeats: Set<string>;
+  quantity?: number;
   userId: string;
   showingId: string;
   ticketPrice: number;
   paymentMethod: string;
 }) {
-  return Array.from(selectedSeats).map(seatId => ({
+  const price = Number(ticketPrice);
+  const taxAmount = Math.round(price * TAX_RATE * 100) / 100;
+  const totalPrice = Math.round(price * (1 + TAX_RATE) * 100) / 100;
+
+  const baseRow = {
     user_id: userId,
     showing_id: showingId,
-    seat_id: seatId,
-    price: Number(ticketPrice),
+    price,
     tax_rate: TAX_RATE,
-    tax_amount: Math.round(Number(ticketPrice) * TAX_RATE * 100) / 100,
-    total_price: Math.round(Number(ticketPrice) * (1 + TAX_RATE) * 100) / 100,
-    qr_code: crypto.randomUUID(),
+    tax_amount: taxAmount,
+    total_price: totalPrice,
+    qr_code: '',
     status: 'confirmed',
     payment_method: paymentMethod,
+  };
+
+  // Assigned seating: one ticket per selected seat
+  if (selectedSeats.size > 0) {
+    return Array.from(selectedSeats).map(seatId => ({
+      ...baseRow,
+      seat_id: seatId,
+      qr_code: crypto.randomUUID(),
+    }));
+  }
+
+  // General admission: quantity tickets with no seat assignment
+  const count = quantity || 0;
+  return Array.from({ length: count }, () => ({
+    ...baseRow,
+    seat_id: null,
+    qr_code: crypto.randomUUID(),
   }));
 }
 
-export function computeOrderTotals(seatCount: number, ticketPrice: number) {
-  const subtotal = seatCount * ticketPrice;
+export function computeOrderTotals(ticketCount: number, ticketPrice: number) {
+  const subtotal = ticketCount * ticketPrice;
   const tax = Math.round(subtotal * TAX_RATE * 100) / 100;
   const total = Math.round((subtotal + tax) * 100) / 100;
   return { subtotal, tax, total };
