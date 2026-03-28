@@ -47,6 +47,8 @@ export default function StaffPOS() {
   const [patronPhone, setPatronPhone] = useState('');
   const [selling, setSelling] = useState(false);
   const [loadingSeats, setLoadingSeats] = useState(false);
+  const [gaQuantity, setGaQuantity] = useState(0);
+  const [gaTicketsSold, setGaTicketsSold] = useState(0);
 
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('cash');
   const [paymentStatus, setPaymentStatus] = useState<PaymentStatus>('idle');
