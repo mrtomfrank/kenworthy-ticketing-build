@@ -104,6 +104,7 @@ export type Database = {
           id: string
           is_active: boolean
           movie_id: string
+          requires_seat_selection: boolean
           start_time: string
           ticket_price: number
           total_seats: number
@@ -114,6 +115,7 @@ export type Database = {
           id?: string
           is_active?: boolean
           movie_id: string
+          requires_seat_selection?: boolean
           start_time: string
           ticket_price?: number
           total_seats?: number
@@ -124,6 +126,7 @@ export type Database = {
           id?: string
           is_active?: boolean
           movie_id?: string
+          requires_seat_selection?: boolean
           start_time?: string
           ticket_price?: number
           total_seats?: number
@@ -147,7 +150,7 @@ export type Database = {
           purchased_at: string
           qr_code: string | null
           scanned_at: string | null
-          seat_id: string
+          seat_id: string | null
           showing_id: string
           status: string
           tax_amount: number
@@ -162,7 +165,7 @@ export type Database = {
           purchased_at?: string
           qr_code?: string | null
           scanned_at?: string | null
-          seat_id: string
+          seat_id?: string | null
           showing_id: string
           status?: string
           tax_amount: number
@@ -177,7 +180,7 @@ export type Database = {
           purchased_at?: string
           qr_code?: string | null
           scanned_at?: string | null
-          seat_id?: string
+          seat_id?: string | null
           showing_id?: string
           status?: string
           tax_amount?: number
