@@ -162,6 +162,7 @@ export default function StaffPOS() {
 
     const ticketRows = buildTicketRows({
       selectedSeats,
+      quantity: isAssignedSeating ? undefined : gaQuantity,
       userId: user.id,
       showingId: selectedShowingId,
       ticketPrice: selectedShowing!.ticket_price,
@@ -171,7 +172,7 @@ export default function StaffPOS() {
     const { data, error } = await supabase.from('tickets').insert(ticketRows).select('id');
     if (error) throw error;
     return (data || []).map(t => t.id);
-  }, [selectedSeats, selectedShowingId, selectedShowing]);
+  }, [selectedSeats, gaQuantity, isAssignedSeating, selectedShowingId, selectedShowing]);
 
   const refreshTakenSeats = useCallback(async () => {
     const { data: ticketsData } = await supabase
