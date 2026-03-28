@@ -28,6 +28,8 @@ interface ShowingOption {
   start_time: string;
   ticket_price: number;
   movie_title: string;
+  requires_seat_selection: boolean;
+  total_seats: number;
 }
 
 type PaymentStatus = 'idle' | 'processing' | 'completed' | 'failed';
