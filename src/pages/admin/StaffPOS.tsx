@@ -427,22 +427,47 @@ export default function StaffPOS() {
             </CardContent>
           </Card>
 
-          {/* Seating map */}
+          {/* Seating map or GA quantity */}
           {selectedShowingId && (
-            <Card className="glass">
-              <CardHeader>
-                <CardTitle className="font-display text-lg">Seating Map</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <SeatMap
-                  seats={seats}
-                  takenSeatIds={takenSeatIds}
-                  selectedSeats={selectedSeats}
-                  onToggleSeat={toggleSeat}
-                  loading={loadingSeats}
-                />
-              </CardContent>
-            </Card>
+            isAssignedSeating ? (
+              <Card className="glass">
+                <CardHeader>
+                  <CardTitle className="font-display text-lg">Seating Map</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <SeatMap
+                    seats={seats}
+                    takenSeatIds={takenSeatIds}
+                    selectedSeats={selectedSeats}
+                    onToggleSeat={toggleSeat}
+                    loading={loadingSeats}
+                  />
+                </CardContent>
+              </Card>
+            ) : (
+              <Card className="glass">
+                <CardHeader>
+                  <CardTitle className="font-display text-lg">General Admission</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="flex items-center justify-between p-4 rounded-lg bg-secondary/50">
+                    <div>
+                      <p className="font-medium">Tickets</p>
+                      <p className="text-xs text-muted-foreground">{gaAvailable} available</p>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <Button variant="outline" size="icon" onClick={() => setGaQuantity(q => Math.max(0, q - 1))} disabled={gaQuantity === 0}>
+                        <Minus className="h-4 w-4" />
+                      </Button>
+                      <span className="text-xl font-bold w-8 text-center">{gaQuantity}</span>
+                      <Button variant="outline" size="icon" onClick={() => setGaQuantity(q => Math.min(gaAvailable, q + 1))} disabled={gaQuantity >= gaAvailable}>
+                        <Plus className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            )
           )}
 
           <TransactionHistory
