@@ -518,8 +518,8 @@ export default function StaffPOS() {
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              {selectedSeats.size === 0 ? (
-                <p className="text-muted-foreground text-sm">Select a showing and seats to continue</p>
+              {ticketCount === 0 ? (
+                <p className="text-muted-foreground text-sm">Select a showing and tickets to continue</p>
               ) : (
                 <>
                   <p className="text-sm font-medium">{selectedShowing?.movie_title}</p>
@@ -527,15 +527,22 @@ export default function StaffPOS() {
                     {selectedShowing && format(new Date(selectedShowing.start_time), 'MMM d, yyyy h:mm a')}
                   </p>
                   <div className="space-y-1 text-sm">
-                    {Array.from(selectedSeats).map(seatId => {
-                      const seat = seats.find(s => s.id === seatId);
-                      return seat ? (
-                        <div key={seatId} className="flex justify-between">
-                          <span>Row {seat.seat_row}, Seat {seat.seat_number}</span>
-                          <span>${Number(selectedShowing!.ticket_price).toFixed(2)}</span>
-                        </div>
-                      ) : null;
-                    })}
+                    {isAssignedSeating ? (
+                      Array.from(selectedSeats).map(seatId => {
+                        const seat = seats.find(s => s.id === seatId);
+                        return seat ? (
+                          <div key={seatId} className="flex justify-between">
+                            <span>Row {seat.seat_row}, Seat {seat.seat_number}</span>
+                            <span>${Number(selectedShowing!.ticket_price).toFixed(2)}</span>
+                          </div>
+                        ) : null;
+                      })
+                    ) : (
+                      <div className="flex justify-between">
+                        <span>General Admission × {gaQuantity}</span>
+                        <span>${(gaQuantity * Number(selectedShowing!.ticket_price)).toFixed(2)}</span>
+                      </div>
+                    )}
                   </div>
                   <div className="border-t border-border pt-3 space-y-1 text-sm">
                     <div className="flex justify-between">
