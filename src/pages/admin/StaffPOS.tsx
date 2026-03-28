@@ -174,14 +174,23 @@ export default function StaffPOS() {
     return (data || []).map(t => t.id);
   }, [selectedSeats, gaQuantity, isAssignedSeating, selectedShowingId, selectedShowing]);
 
-  const refreshTakenSeats = useCallback(async () => {
-    const { data: ticketsData } = await supabase
-      .from('tickets')
-      .select('seat_id')
-      .eq('showing_id', selectedShowingId)
-      .eq('status', 'confirmed');
-    setTakenSeatIds(new Set((ticketsData || []).map(t => t.seat_id)));
-  }, [selectedShowingId]);
+  const refreshAfterSale = useCallback(async () => {
+    if (isAssignedSeating) {
+      const { data: ticketsData } = await supabase
+        .from('tickets')
+        .select('seat_id')
+        .eq('showing_id', selectedShowingId)
+        .eq('status', 'confirmed');
+      setTakenSeatIds(new Set((ticketsData || []).map(t => t.seat_id)));
+    } else {
+      const { count } = await supabase
+        .from('tickets')
+        .select('id', { count: 'exact' })
+        .eq('showing_id', selectedShowingId)
+        .eq('status', 'confirmed');
+      setGaTicketsSold(count || 0);
+    }
+  }, [selectedShowingId, isAssignedSeating]);
 
   const addTransaction = useCallback((ticketIds: string[], method: PaymentMethod) => {
     const seatLabels = Array.from(selectedSeats).map(seatId => {
