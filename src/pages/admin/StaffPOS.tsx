@@ -215,6 +215,7 @@ export default function StaffPOS() {
 
   const resetForm = useCallback(() => {
     setSelectedSeats(new Set());
+    setGaQuantity(0);
     setPatronEmail('');
     setPatronPhone('');
     setPaymentStatus('idle');
