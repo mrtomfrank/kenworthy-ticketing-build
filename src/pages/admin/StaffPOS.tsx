@@ -111,23 +111,38 @@ export default function StaffPOS() {
   useEffect(() => {
     if (!selectedShowingId) return;
     setSelectedSeats(new Set());
+    setGaQuantity(0);
     setLoadingSeats(true);
 
+    const currentShowing = showings.find(s => s.id === selectedShowingId);
+
     async function loadSeats() {
-      const [seatsRes, ticketsRes] = await Promise.all([
-        supabase.from('seats').select('*').order('seat_row').order('seat_number'),
-        supabase.from('tickets').select('seat_id').eq('showing_id', selectedShowingId).eq('status', 'confirmed'),
-      ]);
-      setSeats(seatsRes.data || []);
-      setTakenSeatIds(new Set((ticketsRes.data || []).map(t => t.seat_id)));
+      if (currentShowing?.requires_seat_selection) {
+        const [seatsRes, ticketsRes] = await Promise.all([
+          supabase.from('seats').select('*').order('seat_row').order('seat_number'),
+          supabase.from('tickets').select('seat_id').eq('showing_id', selectedShowingId).eq('status', 'confirmed'),
+        ]);
+        setSeats(seatsRes.data || []);
+        setTakenSeatIds(new Set((ticketsRes.data || []).map(t => t.seat_id)));
+      } else {
+        const { count } = await supabase
+          .from('tickets')
+          .select('id', { count: 'exact' })
+          .eq('showing_id', selectedShowingId)
+          .eq('status', 'confirmed');
+        setGaTicketsSold(count || 0);
+      }
       setLoadingSeats(false);
     }
     loadSeats();
-  }, [selectedShowingId]);
+  }, [selectedShowingId, showings]);
 
   const selectedShowing = showings.find(s => s.id === selectedShowingId);
+  const isAssignedSeating = selectedShowing?.requires_seat_selection;
+  const ticketCount = isAssignedSeating ? selectedSeats.size : gaQuantity;
+  const gaAvailable = (selectedShowing?.total_seats || 200) - gaTicketsSold;
   const { subtotal, tax, total } = computeOrderTotals(
-    selectedSeats.size,
+    ticketCount,
     selectedShowing?.ticket_price || 0
   );
 
