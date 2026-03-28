@@ -193,10 +193,12 @@ export default function StaffPOS() {
   }, [selectedShowingId, isAssignedSeating]);
 
   const addTransaction = useCallback((ticketIds: string[], method: PaymentMethod) => {
-    const seatLabels = Array.from(selectedSeats).map(seatId => {
-      const seat = seats.find(s => s.id === seatId);
-      return seat ? `${seat.seat_row}${seat.seat_number}` : '?';
-    });
+    const seatLabels = isAssignedSeating
+      ? Array.from(selectedSeats).map(seatId => {
+          const seat = seats.find(s => s.id === seatId);
+          return seat ? `${seat.seat_row}${seat.seat_number}` : '?';
+        })
+      : [`GA ×${gaQuantity}`];
 
     const tx: SessionTransaction = {
       id: crypto.randomUUID(),
@@ -209,7 +211,7 @@ export default function StaffPOS() {
       refunded: false,
     };
     setTransactions(prev => [tx, ...prev]);
-  }, [selectedSeats, seats, selectedShowing, total]);
+  }, [selectedSeats, seats, selectedShowing, total, isAssignedSeating, gaQuantity]);
 
   const resetForm = useCallback(() => {
     setSelectedSeats(new Set());
