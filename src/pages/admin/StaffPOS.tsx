@@ -604,7 +604,7 @@ export default function StaffPOS() {
                           <CreditCard className="h-4 w-4 mr-1" />
                         )}
                         {paymentMethod === 'cash'
-                          ? `Sell ${selectedSeats.size} Ticket(s) — Cash`
+                          ? `Sell ${ticketCount} Ticket(s) — Cash`
                           : `Charge $${total.toFixed(2)} on Terminal`
                         }
                       </>
