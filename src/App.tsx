@@ -15,6 +15,7 @@ import MovieForm from "./pages/admin/MovieForm";
 import ShowingForm from "./pages/admin/ShowingForm";
 import StaffPOS from "./pages/admin/StaffPOS";
 import TicketScanner from "./pages/admin/TicketScanner";
+import ResetPassword from "./pages/ResetPassword";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
