@@ -99,6 +99,9 @@ export default function Auth() {
                 <Button type="submit" className="w-full" disabled={loading}>
                   {loading ? 'Signing in...' : 'Sign In'}
                 </Button>
+                <button type="button" className="w-full text-sm text-muted-foreground hover:text-primary underline" onClick={() => { setForgotEmail(signinEmail); setShowForgot(true); }}>
+                  Forgot password?
+                </button>
               </form>
             </TabsContent>
             <TabsContent value="signup">
