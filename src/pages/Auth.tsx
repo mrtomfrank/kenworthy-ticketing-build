@@ -21,6 +21,8 @@ export default function Auth() {
   const [signupEmail, setSignupEmail] = useState('');
   const [signupPassword, setSignupPassword] = useState('');
   const [signupName, setSignupName] = useState('');
+  const [forgotEmail, setForgotEmail] = useState('');
+  const [showForgot, setShowForgot] = useState(false);
   const [loading, setLoading] = useState(false);
 
   const handleSignIn = async (e: React.FormEvent) => {
@@ -30,6 +32,23 @@ export default function Auth() {
       await signIn(signinEmail, signinPassword);
       toast.success('Welcome back!');
       navigate('/');
+    } catch (err: any) {
+      toast.error(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleForgotPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(forgotEmail, {
+        redirectTo: `${window.location.origin}/reset-password`,
+      });
+      if (error) throw error;
+      toast.success('Password reset email sent! Check your inbox.');
+      setShowForgot(false);
     } catch (err: any) {
       toast.error(err.message);
     } finally {
