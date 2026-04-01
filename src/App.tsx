@@ -15,6 +15,7 @@ import MovieForm from "./pages/admin/MovieForm";
 import ShowingForm from "./pages/admin/ShowingForm";
 import StaffPOS from "./pages/admin/StaffPOS";
 import TicketScanner from "./pages/admin/TicketScanner";
+import ResetPassword from "./pages/ResetPassword";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -30,6 +31,7 @@ const App = () => (
             <Routes>
               <Route path="/" element={<Index />} />
               <Route path="/auth" element={<Auth />} />
+              <Route path="/reset-password" element={<ResetPassword />} />
               <Route path="/showing/:id" element={<Showing />} />
               <Route path="/my-tickets" element={<MyTickets />} />
               <Route path="/profile" element={<Profile />} />
