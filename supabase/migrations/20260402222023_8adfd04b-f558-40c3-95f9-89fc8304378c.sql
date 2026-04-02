@@ -1,0 +1,1 @@
+DELETE FROM tickets WHERE qr_code = 'test-trigger-verify';
