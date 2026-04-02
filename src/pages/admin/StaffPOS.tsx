@@ -21,7 +21,9 @@ import { SeatMap } from '@/components/SeatMap';
 import { DailySalesSummary } from '@/components/pos/DailySalesSummary';
 import { TransactionHistory, type SessionTransaction } from '@/components/pos/TransactionHistory';
 import { PaymentMethodSelector, type PaymentMethod } from '@/components/pos/PaymentMethodSelector';
+import { ConcessionPOS } from '@/components/pos/ConcessionPOS';
 import { type Seat, buildTicketRows, computeOrderTotals } from '@/lib/booking';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 interface ShowingOption {
   id: string;
