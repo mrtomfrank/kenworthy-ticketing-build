@@ -41,9 +41,14 @@ const App = () => (
               <Route path="/admin" element={<AdminDashboard />} />
               <Route path="/admin/movies/:id" element={<MovieForm />} />
               <Route path="/admin/movies/new" element={<MovieForm />} />
+              <Route path="/admin/events/:id" element={<EventForm />} />
+              <Route path="/admin/events/new" element={<EventForm />} />
+              <Route path="/admin/concerts/:id" element={<ConcertForm />} />
+              <Route path="/admin/concerts/new" element={<ConcertForm />} />
+              <Route path="/admin/venues/:id" element={<VenueForm />} />
+              <Route path="/admin/venues/new" element={<VenueForm />} />
               <Route path="/admin/showings/new" element={<ShowingForm />} />
               <Route path="/admin/showings/:id" element={<ShowingForm />} />
-              <Route path="/admin/pos" element={<StaffPOS />} />
               <Route path="/admin/scanner" element={<TicketScanner />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
