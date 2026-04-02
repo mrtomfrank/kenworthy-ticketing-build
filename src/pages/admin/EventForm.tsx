@@ -10,6 +10,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
+import { PosterUpload } from '@/components/admin/PosterUpload';
 
 export default function EventForm() {
   const { id } = useParams();
@@ -88,10 +89,7 @@ export default function EventForm() {
               <Label>Description</Label>
               <Textarea value={description} onChange={e => setDescription(e.target.value)} rows={3} />
             </div>
-            <div className="space-y-2">
-              <Label>Poster URL</Label>
-              <Input value={posterUrl} onChange={e => setPosterUrl(e.target.value)} placeholder="https://..." />
-            </div>
+            <PosterUpload currentUrl={posterUrl} onUrlChange={setPosterUrl} folder="events" />
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>Genre</Label>
