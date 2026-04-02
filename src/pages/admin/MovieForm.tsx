@@ -85,10 +85,7 @@ export default function MovieForm() {
               <Label>Description</Label>
               <Textarea value={description} onChange={e => setDescription(e.target.value)} rows={3} />
             </div>
-            <div className="space-y-2">
-              <Label>Poster URL</Label>
-              <Input value={posterUrl} onChange={e => setPosterUrl(e.target.value)} placeholder="https://..." />
-            </div>
+            <PosterUpload currentUrl={posterUrl} onUrlChange={setPosterUrl} folder="movies" />
             <div className="grid grid-cols-3 gap-4">
               <div className="space-y-2">
                 <Label>Duration (min)</Label>
