@@ -14,6 +14,84 @@ export type Database = {
   }
   public: {
     Tables: {
+      concerts: {
+        Row: {
+          created_at: string
+          description: string | null
+          genre: string | null
+          id: string
+          is_active: boolean
+          poster_url: string | null
+          rating: string | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          genre?: string | null
+          id?: string
+          is_active?: boolean
+          poster_url?: string | null
+          rating?: string | null
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          genre?: string | null
+          id?: string
+          is_active?: boolean
+          poster_url?: string | null
+          rating?: string | null
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      events: {
+        Row: {
+          created_at: string
+          description: string | null
+          genre: string | null
+          id: string
+          is_active: boolean
+          poster_url: string | null
+          rating: string | null
+          rsvp_url: string | null
+          ticket_type: Database["public"]["Enums"]["event_ticket_type"]
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          genre?: string | null
+          id?: string
+          is_active?: boolean
+          poster_url?: string | null
+          rating?: string | null
+          rsvp_url?: string | null
+          ticket_type?: Database["public"]["Enums"]["event_ticket_type"]
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          genre?: string | null
+          id?: string
+          is_active?: boolean
+          poster_url?: string | null
+          rating?: string | null
+          rsvp_url?: string | null
+          ticket_type?: Database["public"]["Enums"]["event_ticket_type"]
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       movies: {
         Row: {
           created_at: string
@@ -100,44 +178,74 @@ export type Database = {
       }
       showings: {
         Row: {
+          concert_id: string | null
           created_at: string
+          event_id: string | null
           id: string
           is_active: boolean
-          movie_id: string
+          movie_id: string | null
           requires_seat_selection: boolean
           start_time: string
           ticket_price: number
           total_seats: number
           updated_at: string
+          venue_id: string | null
         }
         Insert: {
+          concert_id?: string | null
           created_at?: string
+          event_id?: string | null
           id?: string
           is_active?: boolean
-          movie_id: string
+          movie_id?: string | null
           requires_seat_selection?: boolean
           start_time: string
           ticket_price?: number
           total_seats?: number
           updated_at?: string
+          venue_id?: string | null
         }
         Update: {
+          concert_id?: string | null
           created_at?: string
+          event_id?: string | null
           id?: string
           is_active?: boolean
-          movie_id?: string
+          movie_id?: string | null
           requires_seat_selection?: boolean
           start_time?: string
           ticket_price?: number
           total_seats?: number
           updated_at?: string
+          venue_id?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "showings_concert_id_fkey"
+            columns: ["concert_id"]
+            isOneToOne: false
+            referencedRelation: "concerts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "showings_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "showings_movie_id_fkey"
             columns: ["movie_id"]
             isOneToOne: false
             referencedRelation: "movies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "showings_venue_id_fkey"
+            columns: ["venue_id"]
+            isOneToOne: false
+            referencedRelation: "venues"
             referencedColumns: ["id"]
           },
         ]
@@ -230,6 +338,71 @@ export type Database = {
         }
         Relationships: []
       }
+      venue_seats: {
+        Row: {
+          id: string
+          seat_number: number
+          seat_row: string
+          seat_type: string
+          venue_id: string
+        }
+        Insert: {
+          id?: string
+          seat_number: number
+          seat_row: string
+          seat_type?: string
+          venue_id: string
+        }
+        Update: {
+          id?: string
+          seat_number?: number
+          seat_row?: string
+          seat_type?: string
+          venue_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "venue_seats_venue_id_fkey"
+            columns: ["venue_id"]
+            isOneToOne: false
+            referencedRelation: "venues"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      venues: {
+        Row: {
+          created_at: string
+          description: string | null
+          has_assigned_seating: boolean
+          id: string
+          is_active: boolean
+          name: string
+          total_seats: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          has_assigned_seating?: boolean
+          id?: string
+          is_active?: boolean
+          name: string
+          total_seats?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          has_assigned_seating?: boolean
+          id?: string
+          is_active?: boolean
+          name?: string
+          total_seats?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -245,6 +418,7 @@ export type Database = {
     }
     Enums: {
       app_role: "admin" | "regular_user" | "staff"
+      event_ticket_type: "ticketed" | "rsvp" | "info_only"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -373,6 +547,7 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["admin", "regular_user", "staff"],
+      event_ticket_type: ["ticketed", "rsvp", "info_only"],
     },
   },
 } as const
