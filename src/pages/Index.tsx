@@ -48,34 +48,41 @@ interface ConcertWithShowings {
 
 export default function Index() {
   const [movies, setMovies] = useState<MovieWithShowings[]>([]);
+  const [events, setEvents] = useState<EventWithShowings[]>([]);
+  const [concerts, setConcerts] = useState<ConcertWithShowings[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    async function fetchMovies() {
-      const { data: moviesData } = await supabase
-        .from('movies')
-        .select('*')
-        .eq('is_active', true)
-        .order('title');
+    async function fetchAll() {
+      const now = new Date().toISOString();
 
-      if (!moviesData) { setLoading(false); return; }
+      const [moviesRes, eventsRes, concertsRes, showingsRes] = await Promise.all([
+        supabase.from('movies').select('*').eq('is_active', true).order('title'),
+        supabase.from('events').select('*').eq('is_active', true).order('title'),
+        supabase.from('concerts').select('*').eq('is_active', true).order('title'),
+        supabase.from('showings').select('*').eq('is_active', true).gte('start_time', now).order('start_time'),
+      ]);
 
-      const { data: showingsData } = await supabase
-        .from('showings')
-        .select('*')
-        .eq('is_active', true)
-        .gte('start_time', new Date().toISOString())
-        .order('start_time');
+      const showings = showingsRes.data || [];
 
-      const moviesWithShowings: MovieWithShowings[] = moviesData.map(m => ({
+      setMovies((moviesRes.data || []).map(m => ({
         ...m,
-        showings: (showingsData || []).filter(s => s.movie_id === m.id),
-      }));
+        showings: showings.filter(s => s.movie_id === m.id),
+      })));
 
-      setMovies(moviesWithShowings);
+      setEvents((eventsRes.data || []).map(e => ({
+        ...e,
+        showings: showings.filter(s => s.event_id === e.id),
+      })));
+
+      setConcerts((concertsRes.data || []).map(c => ({
+        ...c,
+        showings: showings.filter(s => s.concert_id === c.id),
+      })));
+
       setLoading(false);
     }
-    fetchMovies();
+    fetchAll();
   }, []);
 
   return (
