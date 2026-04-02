@@ -6,7 +6,8 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Film, Plus, Calendar, Ticket, Edit, Trash2, ShoppingCart, ScanLine, Music, PartyPopper, MapPin } from 'lucide-react';
+import { Film, Plus, Calendar, Ticket, Edit, Trash2, ShoppingCart, ScanLine, Music, PartyPopper, MapPin, BarChart3 } from 'lucide-react';
+import AnalyticsTab from '@/components/admin/AnalyticsTab';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
 
