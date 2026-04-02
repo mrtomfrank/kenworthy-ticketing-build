@@ -335,6 +335,11 @@ export default function AdminDashboard() {
           </div>
         </TabsContent>
 
+        {/* Concessions Tab */}
+        <TabsContent value="concessions">
+          <ConcessionItemsTab />
+        </TabsContent>
+
         {/* Analytics Tab */}
         <TabsContent value="analytics">
           <AnalyticsTab />
