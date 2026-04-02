@@ -7,6 +7,12 @@ import { Badge } from '@/components/ui/badge';
 import { Film, Clock, Calendar, MapPin } from 'lucide-react';
 import { format } from 'date-fns';
 
+interface ShowingInfo {
+  id: string;
+  start_time: string;
+  ticket_price: number;
+}
+
 interface MovieWithShowings {
   id: string;
   title: string;
@@ -15,11 +21,29 @@ interface MovieWithShowings {
   duration_minutes: number;
   rating: string | null;
   genre: string | null;
-  showings: {
-    id: string;
-    start_time: string;
-    ticket_price: number;
-  }[];
+  showings: ShowingInfo[];
+}
+
+interface EventWithShowings {
+  id: string;
+  title: string;
+  description: string | null;
+  poster_url: string | null;
+  rating: string | null;
+  genre: string | null;
+  ticket_type: string;
+  rsvp_url: string | null;
+  showings: ShowingInfo[];
+}
+
+interface ConcertWithShowings {
+  id: string;
+  title: string;
+  description: string | null;
+  poster_url: string | null;
+  rating: string | null;
+  genre: string | null;
+  showings: ShowingInfo[];
 }
 
 export default function Index() {
