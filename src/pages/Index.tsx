@@ -4,8 +4,14 @@ import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Film, Clock, Calendar, MapPin } from 'lucide-react';
+import { Film, Clock, Calendar, MapPin, Music, Sparkles } from 'lucide-react';
 import { format } from 'date-fns';
+
+interface ShowingInfo {
+  id: string;
+  start_time: string;
+  ticket_price: number;
+}
 
 interface MovieWithShowings {
   id: string;
@@ -15,43 +21,68 @@ interface MovieWithShowings {
   duration_minutes: number;
   rating: string | null;
   genre: string | null;
-  showings: {
-    id: string;
-    start_time: string;
-    ticket_price: number;
-  }[];
+  showings: ShowingInfo[];
+}
+
+interface EventWithShowings {
+  id: string;
+  title: string;
+  description: string | null;
+  poster_url: string | null;
+  rating: string | null;
+  genre: string | null;
+  ticket_type: string;
+  rsvp_url: string | null;
+  showings: ShowingInfo[];
+}
+
+interface ConcertWithShowings {
+  id: string;
+  title: string;
+  description: string | null;
+  poster_url: string | null;
+  rating: string | null;
+  genre: string | null;
+  showings: ShowingInfo[];
 }
 
 export default function Index() {
   const [movies, setMovies] = useState<MovieWithShowings[]>([]);
+  const [events, setEvents] = useState<EventWithShowings[]>([]);
+  const [concerts, setConcerts] = useState<ConcertWithShowings[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    async function fetchMovies() {
-      const { data: moviesData } = await supabase
-        .from('movies')
-        .select('*')
-        .eq('is_active', true)
-        .order('title');
+    async function fetchAll() {
+      const now = new Date().toISOString();
 
-      if (!moviesData) { setLoading(false); return; }
+      const [moviesRes, eventsRes, concertsRes, showingsRes] = await Promise.all([
+        supabase.from('movies').select('*').eq('is_active', true).order('title'),
+        supabase.from('events').select('*').eq('is_active', true).order('title'),
+        supabase.from('concerts').select('*').eq('is_active', true).order('title'),
+        supabase.from('showings').select('*').eq('is_active', true).gte('start_time', now).order('start_time'),
+      ]);
 
-      const { data: showingsData } = await supabase
-        .from('showings')
-        .select('*')
-        .eq('is_active', true)
-        .gte('start_time', new Date().toISOString())
-        .order('start_time');
+      const showings = showingsRes.data || [];
 
-      const moviesWithShowings: MovieWithShowings[] = moviesData.map(m => ({
+      setMovies((moviesRes.data || []).map(m => ({
         ...m,
-        showings: (showingsData || []).filter(s => s.movie_id === m.id),
-      }));
+        showings: showings.filter(s => s.movie_id === m.id),
+      })));
 
-      setMovies(moviesWithShowings);
+      setEvents((eventsRes.data || []).map(e => ({
+        ...e,
+        showings: showings.filter(s => s.event_id === e.id),
+      })));
+
+      setConcerts((concertsRes.data || []).map(c => ({
+        ...c,
+        showings: showings.filter(s => s.concert_id === c.id),
+      })));
+
       setLoading(false);
     }
-    fetchMovies();
+    fetchAll();
   }, []);
 
   return (
@@ -146,6 +177,121 @@ export default function Index() {
           </div>
         )}
       </section>
+
+      {/* Events */}
+      {events.length > 0 && (
+        <section className="container py-16 px-4">
+          <h2 className="font-display text-3xl font-bold mb-8 flex items-center gap-2">
+            <Sparkles className="h-7 w-7 text-primary" /> Events
+          </h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {events.map((event, i) => (
+              <Card
+                key={event.id}
+                className="glass overflow-hidden hover:glow-primary transition-shadow duration-300 opacity-0 animate-fade-in"
+                style={{ animationDelay: `${i * 100}ms` }}
+              >
+                <div className="aspect-[2/3] bg-secondary flex items-center justify-center relative overflow-hidden">
+                  {event.poster_url ? (
+                    <img src={event.poster_url} alt={event.title} className="w-full h-full object-cover" />
+                  ) : (
+                    <Sparkles className="h-16 w-16 text-muted-foreground" />
+                  )}
+                  <div className="absolute top-3 right-3 flex gap-1">
+                    {event.rating && <Badge>{event.rating}</Badge>}
+                    {event.genre && <Badge variant="secondary">{event.genre}</Badge>}
+                  </div>
+                  <div className="absolute top-3 left-3">
+                    <Badge variant="outline" className="bg-background/80 backdrop-blur-sm">
+                      {event.ticket_type === 'rsvp' ? 'RSVP' : event.ticket_type === 'info_only' ? 'Info' : 'Ticketed'}
+                    </Badge>
+                  </div>
+                </div>
+                <CardContent className="p-5">
+                  <h3 className="font-display text-xl font-bold mb-2">{event.title}</h3>
+                  {event.description && (
+                    <p className="text-muted-foreground text-sm mb-3 line-clamp-2">{event.description}</p>
+                  )}
+                  {event.ticket_type === 'rsvp' && event.rsvp_url ? (
+                    <Button variant="outline" size="sm" asChild>
+                      <a href={event.rsvp_url} target="_blank" rel="noopener noreferrer">RSVP Now</a>
+                    </Button>
+                  ) : event.showings.length > 0 ? (
+                    <div className="space-y-2">
+                      <p className="text-xs text-muted-foreground uppercase tracking-wider font-medium">Upcoming Showings</p>
+                      <div className="flex flex-wrap gap-2">
+                        {event.showings.slice(0, 4).map(showing => (
+                          <Button key={showing.id} variant="outline" size="sm" asChild>
+                            <Link to={`/showing/${showing.id}`}>
+                              <Calendar className="h-3 w-3 mr-1" />
+                              {format(new Date(showing.start_time), 'MMM d, h:mm a')}
+                            </Link>
+                          </Button>
+                        ))}
+                      </div>
+                    </div>
+                  ) : event.ticket_type !== 'info_only' ? (
+                    <p className="text-sm text-muted-foreground">No upcoming showings</p>
+                  ) : null}
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {/* Concerts */}
+      {concerts.length > 0 && (
+        <section className="container py-16 px-4">
+          <h2 className="font-display text-3xl font-bold mb-8 flex items-center gap-2">
+            <Music className="h-7 w-7 text-primary" /> Concerts
+          </h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {concerts.map((concert, i) => (
+              <Card
+                key={concert.id}
+                className="glass overflow-hidden hover:glow-primary transition-shadow duration-300 opacity-0 animate-fade-in"
+                style={{ animationDelay: `${i * 100}ms` }}
+              >
+                <div className="aspect-[2/3] bg-secondary flex items-center justify-center relative overflow-hidden">
+                  {concert.poster_url ? (
+                    <img src={concert.poster_url} alt={concert.title} className="w-full h-full object-cover" />
+                  ) : (
+                    <Music className="h-16 w-16 text-muted-foreground" />
+                  )}
+                  <div className="absolute top-3 right-3 flex gap-1">
+                    {concert.rating && <Badge>{concert.rating}</Badge>}
+                    {concert.genre && <Badge variant="secondary">{concert.genre}</Badge>}
+                  </div>
+                </div>
+                <CardContent className="p-5">
+                  <h3 className="font-display text-xl font-bold mb-2">{concert.title}</h3>
+                  {concert.description && (
+                    <p className="text-muted-foreground text-sm mb-3 line-clamp-2">{concert.description}</p>
+                  )}
+                  {concert.showings.length > 0 ? (
+                    <div className="space-y-2">
+                      <p className="text-xs text-muted-foreground uppercase tracking-wider font-medium">Upcoming Showings</p>
+                      <div className="flex flex-wrap gap-2">
+                        {concert.showings.slice(0, 4).map(showing => (
+                          <Button key={showing.id} variant="outline" size="sm" asChild>
+                            <Link to={`/showing/${showing.id}`}>
+                              <Calendar className="h-3 w-3 mr-1" />
+                              {format(new Date(showing.start_time), 'MMM d, h:mm a')}
+                            </Link>
+                          </Button>
+                        ))}
+                      </div>
+                    </div>
+                  ) : (
+                    <p className="text-sm text-muted-foreground">No upcoming showings</p>
+                  )}
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </section>
+      )}
 
       {/* Info */}
       <section className="container py-16 px-4">
