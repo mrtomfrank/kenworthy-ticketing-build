@@ -6,56 +6,80 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
+
+type Category = 'movie' | 'event' | 'concert';
 
 export default function ShowingForm() {
   const { id } = useParams();
   const isEdit = !!id && id !== 'new';
   const navigate = useNavigate();
   const { isAdmin, loading: authLoading } = useAuth();
+
+  const [category, setCategory] = useState<Category>('movie');
   const [movies, setMovies] = useState<any[]>([]);
-  const [movieId, setMovieId] = useState('');
+  const [events, setEvents] = useState<any[]>([]);
+  const [concerts, setConcerts] = useState<any[]>([]);
+  const [venues, setVenues] = useState<any[]>([]);
+
+  const [itemId, setItemId] = useState('');
+  const [venueId, setVenueId] = useState('');
   const [startTime, setStartTime] = useState('');
   const [ticketPrice, setTicketPrice] = useState('8.00');
-  const [requiresSeatSelection, setRequiresSeatSelection] = useState(false);
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     if (authLoading) return;
     if (!isAdmin) { navigate('/'); return; }
 
-    supabase.from('movies').select('id, title').eq('is_active', true).order('title').then(({ data }) => {
-      setMovies(data || []);
+    // Load all items (including inactive) so staff can schedule in advance
+    Promise.all([
+      supabase.from('movies').select('id, title, is_active').order('title'),
+      supabase.from('events').select('id, title, ticket_type, is_active').order('title'),
+      supabase.from('concerts').select('id, title, is_active').order('title'),
+      supabase.from('venues').select('id, name, has_assigned_seating').order('name'),
+    ]).then(([moviesRes, eventsRes, concertsRes, venuesRes]) => {
+      setMovies(moviesRes.data || []);
+      // Only show ticketed events (not rsvp or info_only)
+      setEvents((eventsRes.data || []).filter((e: any) => e.ticket_type === 'ticketed'));
+      setConcerts(concertsRes.data || []);
+      setVenues(venuesRes.data || []);
     });
 
     if (isEdit) {
       supabase.from('showings').select('*').eq('id', id).single().then(({ data }) => {
         if (data) {
-          setMovieId(data.movie_id);
-          // Format datetime-local value
+          if (data.movie_id) { setCategory('movie'); setItemId(data.movie_id); }
+          else if (data.event_id) { setCategory('event'); setItemId(data.event_id); }
+          else if (data.concert_id) { setCategory('concert'); setItemId(data.concert_id); }
+          setVenueId(data.venue_id || '');
           const dt = new Date(data.start_time);
           const local = new Date(dt.getTime() - dt.getTimezoneOffset() * 60000)
             .toISOString().slice(0, 16);
           setStartTime(local);
           setTicketPrice(String(data.ticket_price));
-          setRequiresSeatSelection((data as any).requires_seat_selection ?? false);
         }
       });
     }
   }, [id, isEdit, isAdmin, authLoading, navigate]);
 
+  const currentItems = category === 'movie' ? movies
+    : category === 'event' ? events
+    : concerts;
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!movieId) { toast.error('Please select a movie'); return; }
+    if (!itemId) { toast.error('Please select an item'); return; }
     setSaving(true);
 
-    const showingData = {
-      movie_id: movieId,
+    const showingData: any = {
+      movie_id: category === 'movie' ? itemId : null,
+      event_id: category === 'event' ? itemId : null,
+      concert_id: category === 'concert' ? itemId : null,
+      venue_id: venueId || null,
       start_time: new Date(startTime).toISOString(),
       ticket_price: parseFloat(ticketPrice),
-      requires_seat_selection: requiresSeatSelection,
     };
 
     const { error } = isEdit
@@ -79,14 +103,44 @@ export default function ShowingForm() {
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
-              <Label>Movie *</Label>
-              <Select value={movieId} onValueChange={setMovieId}>
+              <Label>Category *</Label>
+              <Select value={category} onValueChange={(v) => { setCategory(v as Category); setItemId(''); }}>
                 <SelectTrigger>
-                  <SelectValue placeholder="Select a movie" />
+                  <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  {movies.map(m => (
-                    <SelectItem key={m.id} value={m.id}>{m.title}</SelectItem>
+                  <SelectItem value="movie">Movie</SelectItem>
+                  <SelectItem value="event">Event</SelectItem>
+                  <SelectItem value="concert">Concert</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>{category === 'movie' ? 'Movie' : category === 'event' ? 'Event' : 'Concert'} *</Label>
+              <Select value={itemId} onValueChange={setItemId}>
+                <SelectTrigger>
+                  <SelectValue placeholder={`Select a ${category}`} />
+                </SelectTrigger>
+                <SelectContent>
+                  {currentItems.map((item: any) => (
+                    <SelectItem key={item.id} value={item.id}>
+                      {item.title}{!item.is_active ? ' (inactive)' : ''}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>Venue</Label>
+              <Select value={venueId} onValueChange={setVenueId}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select a venue (optional)" />
+                </SelectTrigger>
+                <SelectContent>
+                  {venues.map((v: any) => (
+                    <SelectItem key={v.id} value={v.id}>
+                      {v.name}{v.has_assigned_seating ? ' (Assigned Seats)' : ' (GA)'}
+                    </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -98,19 +152,6 @@ export default function ShowingForm() {
             <div className="space-y-2">
               <Label>Ticket Price ($)</Label>
               <Input type="number" step="0.01" value={ticketPrice} onChange={e => setTicketPrice(e.target.value)} />
-            </div>
-            <div className="flex items-center gap-3 py-2">
-              <Checkbox
-                id="seat-selection"
-                checked={requiresSeatSelection}
-                onCheckedChange={(checked) => setRequiresSeatSelection(checked === true)}
-              />
-              <div>
-                <Label htmlFor="seat-selection" className="cursor-pointer">Assigned seating</Label>
-                <p className="text-xs text-muted-foreground">
-                  When enabled, patrons choose specific seats. Otherwise, tickets are general admission.
-                </p>
-              </div>
             </div>
             <Button type="submit" className="w-full" disabled={saving}>
               {saving ? 'Saving...' : isEdit ? 'Update Showing' : 'Create Showing'}
