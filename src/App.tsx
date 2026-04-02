@@ -49,6 +49,7 @@ const App = () => (
               <Route path="/admin/venues/new" element={<VenueForm />} />
               <Route path="/admin/showings/new" element={<ShowingForm />} />
               <Route path="/admin/showings/:id" element={<ShowingForm />} />
+              <Route path="/admin/pos" element={<StaffPOS />} />
               <Route path="/admin/scanner" element={<TicketScanner />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
