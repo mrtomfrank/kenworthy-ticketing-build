@@ -12,7 +12,7 @@ import { toast } from 'sonner';
 import { format } from 'date-fns';
 import {
   ShoppingCart, Film, User, Loader2, CheckCircle2, AlertTriangle,
-  RotateCcw, Banknote, CreditCard, Minus, Plus,
+  RotateCcw, Banknote, CreditCard, Minus, Plus, UtensilsCrossed,
 } from 'lucide-react';
 import {
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
@@ -21,7 +21,9 @@ import { SeatMap } from '@/components/SeatMap';
 import { DailySalesSummary } from '@/components/pos/DailySalesSummary';
 import { TransactionHistory, type SessionTransaction } from '@/components/pos/TransactionHistory';
 import { PaymentMethodSelector, type PaymentMethod } from '@/components/pos/PaymentMethodSelector';
+import { ConcessionPOS } from '@/components/pos/ConcessionPOS';
 import { type Seat, buildTicketRows, computeOrderTotals } from '@/lib/booking';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 interface ShowingOption {
   id: string;
@@ -393,13 +395,21 @@ export default function StaffPOS() {
         <h1 className="font-display text-3xl font-bold">Staff POS</h1>
         <Badge variant="secondary">Box Office</Badge>
       </div>
-      <p className="text-muted-foreground mb-8">Sell tickets to walk-in patrons</p>
+      <p className="text-muted-foreground mb-6">Sell tickets and concessions to walk-in patrons</p>
 
       <DailySalesSummary
         revenue={dailyStats.revenue}
         ticketCount={dailyStats.ticketCount}
         refundCount={dailyStats.refundCount}
       />
+
+      <Tabs defaultValue="tickets" className="space-y-6">
+        <TabsList className="grid w-full grid-cols-2 max-w-xs">
+          <TabsTrigger value="tickets"><ShoppingCart className="h-4 w-4 mr-1" /> Tickets</TabsTrigger>
+          <TabsTrigger value="concessions"><UtensilsCrossed className="h-4 w-4 mr-1" /> Concessions</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="tickets">
 
       <div className="grid lg:grid-cols-3 gap-6">
         {/* Left: Showing selection + Seating map + Transactions */}
@@ -616,6 +626,12 @@ export default function StaffPOS() {
           </Card>
         </div>
       </div>
+        </TabsContent>
+
+        <TabsContent value="concessions">
+          <ConcessionPOS onSaleComplete={loadDailyStats} />
+        </TabsContent>
+      </Tabs>
 
       {/* Refund confirmation dialog */}
       <Dialog open={refundDialogOpen} onOpenChange={setRefundDialogOpen}>
