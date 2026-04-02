@@ -395,13 +395,21 @@ export default function StaffPOS() {
         <h1 className="font-display text-3xl font-bold">Staff POS</h1>
         <Badge variant="secondary">Box Office</Badge>
       </div>
-      <p className="text-muted-foreground mb-8">Sell tickets to walk-in patrons</p>
+      <p className="text-muted-foreground mb-6">Sell tickets and concessions to walk-in patrons</p>
 
       <DailySalesSummary
         revenue={dailyStats.revenue}
         ticketCount={dailyStats.ticketCount}
         refundCount={dailyStats.refundCount}
       />
+
+      <Tabs defaultValue="tickets" className="space-y-6">
+        <TabsList className="grid w-full grid-cols-2 max-w-xs">
+          <TabsTrigger value="tickets"><ShoppingCart className="h-4 w-4 mr-1" /> Tickets</TabsTrigger>
+          <TabsTrigger value="concessions"><UtensilsCrossed className="h-4 w-4 mr-1" /> Concessions</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="tickets">
 
       <div className="grid lg:grid-cols-3 gap-6">
         {/* Left: Showing selection + Seating map + Transactions */}
