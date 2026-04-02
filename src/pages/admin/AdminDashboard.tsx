@@ -6,7 +6,8 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Film, Plus, Calendar, Ticket, Edit, Trash2, ShoppingCart, ScanLine, Music, PartyPopper, MapPin } from 'lucide-react';
+import { Film, Plus, Calendar, Ticket, Edit, Trash2, ShoppingCart, ScanLine, Music, PartyPopper, MapPin, BarChart3 } from 'lucide-react';
+import AnalyticsTab from '@/components/admin/AnalyticsTab';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
 
@@ -127,12 +128,13 @@ export default function AdminDashboard() {
       </div>
 
       <Tabs defaultValue="movies" className="space-y-4">
-        <TabsList className="grid w-full grid-cols-5">
+        <TabsList className="grid w-full grid-cols-6">
           <TabsTrigger value="movies">Movies</TabsTrigger>
           <TabsTrigger value="events">Events</TabsTrigger>
           <TabsTrigger value="concerts">Concerts</TabsTrigger>
           <TabsTrigger value="venues">Venues</TabsTrigger>
           <TabsTrigger value="showings">Showings</TabsTrigger>
+          <TabsTrigger value="analytics"><BarChart3 className="h-4 w-4 mr-1 inline" />Analytics</TabsTrigger>
         </TabsList>
 
         {/* Movies Tab */}
@@ -329,6 +331,11 @@ export default function AdminDashboard() {
             ))}
             {showings.length === 0 && <p className="text-muted-foreground text-center py-8">No showings scheduled.</p>}
           </div>
+        </TabsContent>
+
+        {/* Analytics Tab */}
+        <TabsContent value="analytics">
+          <AnalyticsTab />
         </TabsContent>
       </Tabs>
     </div>
