@@ -332,6 +332,11 @@ export default function AdminDashboard() {
             {showings.length === 0 && <p className="text-muted-foreground text-center py-8">No showings scheduled.</p>}
           </div>
         </TabsContent>
+
+        {/* Analytics Tab */}
+        <TabsContent value="analytics">
+          <AnalyticsTab />
+        </TabsContent>
       </Tabs>
     </div>
   );
