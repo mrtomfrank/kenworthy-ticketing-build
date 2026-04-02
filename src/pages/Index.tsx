@@ -178,6 +178,121 @@ export default function Index() {
         )}
       </section>
 
+      {/* Events */}
+      {events.length > 0 && (
+        <section className="container py-16 px-4">
+          <h2 className="font-display text-3xl font-bold mb-8 flex items-center gap-2">
+            <Sparkles className="h-7 w-7 text-primary" /> Events
+          </h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {events.map((event, i) => (
+              <Card
+                key={event.id}
+                className="glass overflow-hidden hover:glow-primary transition-shadow duration-300 opacity-0 animate-fade-in"
+                style={{ animationDelay: `${i * 100}ms` }}
+              >
+                <div className="aspect-[2/3] bg-secondary flex items-center justify-center relative overflow-hidden">
+                  {event.poster_url ? (
+                    <img src={event.poster_url} alt={event.title} className="w-full h-full object-cover" />
+                  ) : (
+                    <Sparkles className="h-16 w-16 text-muted-foreground" />
+                  )}
+                  <div className="absolute top-3 right-3 flex gap-1">
+                    {event.rating && <Badge>{event.rating}</Badge>}
+                    {event.genre && <Badge variant="secondary">{event.genre}</Badge>}
+                  </div>
+                  <div className="absolute top-3 left-3">
+                    <Badge variant="outline" className="bg-background/80 backdrop-blur-sm">
+                      {event.ticket_type === 'rsvp' ? 'RSVP' : event.ticket_type === 'info_only' ? 'Info' : 'Ticketed'}
+                    </Badge>
+                  </div>
+                </div>
+                <CardContent className="p-5">
+                  <h3 className="font-display text-xl font-bold mb-2">{event.title}</h3>
+                  {event.description && (
+                    <p className="text-muted-foreground text-sm mb-3 line-clamp-2">{event.description}</p>
+                  )}
+                  {event.ticket_type === 'rsvp' && event.rsvp_url ? (
+                    <Button variant="outline" size="sm" asChild>
+                      <a href={event.rsvp_url} target="_blank" rel="noopener noreferrer">RSVP Now</a>
+                    </Button>
+                  ) : event.showings.length > 0 ? (
+                    <div className="space-y-2">
+                      <p className="text-xs text-muted-foreground uppercase tracking-wider font-medium">Upcoming Showings</p>
+                      <div className="flex flex-wrap gap-2">
+                        {event.showings.slice(0, 4).map(showing => (
+                          <Button key={showing.id} variant="outline" size="sm" asChild>
+                            <Link to={`/showing/${showing.id}`}>
+                              <Calendar className="h-3 w-3 mr-1" />
+                              {format(new Date(showing.start_time), 'MMM d, h:mm a')}
+                            </Link>
+                          </Button>
+                        ))}
+                      </div>
+                    </div>
+                  ) : event.ticket_type !== 'info_only' ? (
+                    <p className="text-sm text-muted-foreground">No upcoming showings</p>
+                  ) : null}
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {/* Concerts */}
+      {concerts.length > 0 && (
+        <section className="container py-16 px-4">
+          <h2 className="font-display text-3xl font-bold mb-8 flex items-center gap-2">
+            <Music className="h-7 w-7 text-primary" /> Concerts
+          </h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {concerts.map((concert, i) => (
+              <Card
+                key={concert.id}
+                className="glass overflow-hidden hover:glow-primary transition-shadow duration-300 opacity-0 animate-fade-in"
+                style={{ animationDelay: `${i * 100}ms` }}
+              >
+                <div className="aspect-[2/3] bg-secondary flex items-center justify-center relative overflow-hidden">
+                  {concert.poster_url ? (
+                    <img src={concert.poster_url} alt={concert.title} className="w-full h-full object-cover" />
+                  ) : (
+                    <Music className="h-16 w-16 text-muted-foreground" />
+                  )}
+                  <div className="absolute top-3 right-3 flex gap-1">
+                    {concert.rating && <Badge>{concert.rating}</Badge>}
+                    {concert.genre && <Badge variant="secondary">{concert.genre}</Badge>}
+                  </div>
+                </div>
+                <CardContent className="p-5">
+                  <h3 className="font-display text-xl font-bold mb-2">{concert.title}</h3>
+                  {concert.description && (
+                    <p className="text-muted-foreground text-sm mb-3 line-clamp-2">{concert.description}</p>
+                  )}
+                  {concert.showings.length > 0 ? (
+                    <div className="space-y-2">
+                      <p className="text-xs text-muted-foreground uppercase tracking-wider font-medium">Upcoming Showings</p>
+                      <div className="flex flex-wrap gap-2">
+                        {concert.showings.slice(0, 4).map(showing => (
+                          <Button key={showing.id} variant="outline" size="sm" asChild>
+                            <Link to={`/showing/${showing.id}`}>
+                              <Calendar className="h-3 w-3 mr-1" />
+                              {format(new Date(showing.start_time), 'MMM d, h:mm a')}
+                            </Link>
+                          </Button>
+                        ))}
+                      </div>
+                    </div>
+                  ) : (
+                    <p className="text-sm text-muted-foreground">No upcoming showings</p>
+                  )}
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </section>
+      )}
+
       {/* Info */}
       <section className="container py-16 px-4">
         <Card className="glass p-8 md:p-12">
