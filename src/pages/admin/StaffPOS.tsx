@@ -626,6 +626,12 @@ export default function StaffPOS() {
           </Card>
         </div>
       </div>
+        </TabsContent>
+
+        <TabsContent value="concessions">
+          <ConcessionPOS onSaleComplete={loadDailyStats} />
+        </TabsContent>
+      </Tabs>
 
       {/* Refund confirmation dialog */}
       <Dialog open={refundDialogOpen} onOpenChange={setRefundDialogOpen}>
