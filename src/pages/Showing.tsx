@@ -6,9 +6,19 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
-import { Film, Calendar, Clock, DollarSign, Check, Minus, Plus } from 'lucide-react';
+import { Film, Calendar, Clock, DollarSign, Check, Minus, Plus, MapPin, Sparkles, Music } from 'lucide-react';
 import { SeatMap } from '@/components/SeatMap';
 import { type Seat, TAX_RATE, buildTicketRows, computeOrderTotals } from '@/lib/booking';
+
+type ProductionType = 'movie' | 'event' | 'concert';
+
+function getProductionMeta(type: ProductionType) {
+  switch (type) {
+    case 'movie': return { icon: Film, label: 'Movie' };
+    case 'event': return { icon: Sparkles, label: 'Event' };
+    case 'concert': return { icon: Music, label: 'Concert' };
+  }
+}
 
 export default function Showing() {
   const { id } = useParams<{ id: string }>();
@@ -16,7 +26,9 @@ export default function Showing() {
   const { user } = useAuth();
 
   const [showing, setShowing] = useState<any>(null);
-  const [movie, setMovie] = useState<any>(null);
+  const [production, setProduction] = useState<any>(null);
+  const [productionType, setProductionType] = useState<ProductionType>('movie');
+  const [venue, setVenue] = useState<any>(null);
   const [seats, setSeats] = useState<Seat[]>([]);
   const [takenSeatIds, setTakenSeatIds] = useState<Set<string>>(new Set());
   const [selectedSeats, setSelectedSeats] = useState<Set<string>>(new Set());
@@ -36,23 +48,44 @@ export default function Showing() {
       if (!s) { navigate('/'); return; }
       setShowing(s);
 
-      const moviePromise = supabase.from('movies').select('*').eq('id', s.movie_id).single();
+      // Determine production type and fetch accordingly
+      let type: ProductionType = 'movie';
+      let productionPromise;
+      if (s.event_id) {
+        type = 'event';
+        productionPromise = supabase.from('events').select('*').eq('id', s.event_id).single();
+      } else if (s.concert_id) {
+        type = 'concert';
+        productionPromise = supabase.from('concerts').select('*').eq('id', s.concert_id).single();
+      } else {
+        productionPromise = supabase.from('movies').select('*').eq('id', s.movie_id).single();
+      }
+      setProductionType(type);
+
+      // Fetch venue if present
+      const venuePromise = s.venue_id
+        ? supabase.from('venues').select('*').eq('id', s.venue_id).single()
+        : Promise.resolve({ data: null });
 
       if (s.requires_seat_selection) {
-        const [movieRes, seatsRes, ticketsRes] = await Promise.all([
-          moviePromise,
+        const [prodRes, venueRes, seatsRes, ticketsRes] = await Promise.all([
+          productionPromise,
+          venuePromise,
           supabase.from('seats').select('*').order('seat_row').order('seat_number'),
           supabase.from('tickets').select('seat_id').eq('showing_id', id).eq('status', 'confirmed'),
         ]);
-        setMovie(movieRes.data);
+        setProduction(prodRes.data);
+        setVenue(venueRes.data);
         setSeats(seatsRes.data || []);
         setTakenSeatIds(new Set((ticketsRes.data || []).map(t => t.seat_id)));
       } else {
-        const [movieRes, ticketsRes] = await Promise.all([
-          moviePromise,
+        const [prodRes, venueRes, ticketsRes] = await Promise.all([
+          productionPromise,
+          venuePromise,
           supabase.from('tickets').select('id', { count: 'exact' }).eq('showing_id', id).eq('status', 'confirmed'),
         ]);
-        setMovie(movieRes.data);
+        setProduction(prodRes.data);
+        setVenue(venueRes.data);
         setTicketsSold(ticketsRes.count || 0);
       }
       setLoading(false);
@@ -104,17 +137,28 @@ export default function Showing() {
     return <div className="container py-16 text-center text-muted-foreground">Loading...</div>;
   }
 
+  const meta = getProductionMeta(productionType);
+  const Icon = meta.icon;
+
   return (
     <div className="container py-8 px-4 max-w-5xl">
-      {/* Movie info */}
+      {/* Production info */}
       <div className="mb-8">
         <Button variant="ghost" size="sm" onClick={() => navigate('/')} className="mb-4">← Back</Button>
         <div className="flex items-start gap-4">
           <div className="h-16 w-16 rounded-lg bg-secondary flex items-center justify-center shrink-0">
-            <Film className="h-8 w-8 text-primary" />
+            <Icon className="h-8 w-8 text-primary" />
           </div>
           <div>
-            <h1 className="font-display text-3xl font-bold">{movie?.title}</h1>
+            <div className="flex items-center gap-2">
+              <h1 className="font-display text-3xl font-bold">{production?.title}</h1>
+              <span className="text-xs bg-secondary text-secondary-foreground px-2 py-0.5 rounded-full font-medium">
+                {meta.label}
+              </span>
+            </div>
+            {production?.description && (
+              <p className="text-sm text-muted-foreground mt-1 max-w-2xl">{production.description}</p>
+            )}
             <div className="flex flex-wrap gap-3 mt-2 text-muted-foreground text-sm">
               <span className="flex items-center gap-1">
                 <Calendar className="h-4 w-4" /> {format(new Date(showing.start_time), 'EEEE, MMMM d, yyyy')}
@@ -125,6 +169,11 @@ export default function Showing() {
               <span className="flex items-center gap-1">
                 <DollarSign className="h-4 w-4" /> ${Number(showing.ticket_price).toFixed(2)} per ticket
               </span>
+              {venue && (
+                <span className="flex items-center gap-1">
+                  <MapPin className="h-4 w-4" /> {venue.name}
+                </span>
+              )}
             </div>
           </div>
         </div>
