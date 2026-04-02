@@ -129,12 +129,13 @@ export default function AdminDashboard() {
       </div>
 
       <Tabs defaultValue="movies" className="space-y-4">
-        <TabsList className="grid w-full grid-cols-6">
+        <TabsList className="grid w-full grid-cols-7">
           <TabsTrigger value="movies">Movies</TabsTrigger>
           <TabsTrigger value="events">Events</TabsTrigger>
           <TabsTrigger value="concerts">Concerts</TabsTrigger>
           <TabsTrigger value="venues">Venues</TabsTrigger>
           <TabsTrigger value="showings">Showings</TabsTrigger>
+          <TabsTrigger value="concessions"><UtensilsCrossed className="h-4 w-4 mr-1 inline" />Concessions</TabsTrigger>
           <TabsTrigger value="analytics"><BarChart3 className="h-4 w-4 mr-1 inline" />Analytics</TabsTrigger>
         </TabsList>
 
