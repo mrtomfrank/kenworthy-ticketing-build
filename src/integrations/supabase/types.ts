@@ -50,6 +50,122 @@ export type Database = {
         }
         Relationships: []
       }
+      concession_items: {
+        Row: {
+          category: string
+          created_at: string
+          id: string
+          is_active: boolean
+          name: string
+          price: number
+          updated_at: string
+        }
+        Insert: {
+          category?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name: string
+          price?: number
+          updated_at?: string
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name?: string
+          price?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      concession_sale_items: {
+        Row: {
+          concession_item_id: string
+          id: string
+          line_total: number
+          quantity: number
+          sale_id: string
+          unit_price: number
+        }
+        Insert: {
+          concession_item_id: string
+          id?: string
+          line_total: number
+          quantity?: number
+          sale_id: string
+          unit_price: number
+        }
+        Update: {
+          concession_item_id?: string
+          id?: string
+          line_total?: number
+          quantity?: number
+          sale_id?: string
+          unit_price?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "concession_sale_items_concession_item_id_fkey"
+            columns: ["concession_item_id"]
+            isOneToOne: false
+            referencedRelation: "concession_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "concession_sale_items_sale_id_fkey"
+            columns: ["sale_id"]
+            isOneToOne: false
+            referencedRelation: "concession_sales"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      concession_sales: {
+        Row: {
+          created_at: string
+          id: string
+          payment_method: string
+          showing_id: string | null
+          staff_user_id: string
+          subtotal: number
+          tax_amount: number
+          tax_rate: number
+          total: number
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          payment_method?: string
+          showing_id?: string | null
+          staff_user_id: string
+          subtotal?: number
+          tax_amount?: number
+          tax_rate?: number
+          total?: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          payment_method?: string
+          showing_id?: string | null
+          staff_user_id?: string
+          subtotal?: number
+          tax_amount?: number
+          tax_rate?: number
+          total?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "concession_sales_showing_id_fkey"
+            columns: ["showing_id"]
+            isOneToOne: false
+            referencedRelation: "showings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       events: {
         Row: {
           created_at: string
