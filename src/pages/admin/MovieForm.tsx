@@ -40,6 +40,7 @@ export default function MovieForm() {
           setRating(data.rating || '');
           setGenre(data.genre || '');
           setIsActive(data.is_active);
+          setTrailerUrl(data.trailer_url || '');
         }
       });
     }
