@@ -96,6 +96,10 @@ export default function ConcertForm() {
                 <Input value={rating} onChange={e => setRating(e.target.value)} placeholder="NR" />
               </div>
             </div>
+            <div className="space-y-2">
+              <Label>Trailer URL</Label>
+              <Input value={trailerUrl} onChange={e => setTrailerUrl(e.target.value)} placeholder="YouTube, Vimeo, or direct video URL" />
+            </div>
             <div className="flex items-center gap-2">
               <Switch checked={isActive} onCheckedChange={setIsActive} />
               <Label>Active (visible to public)</Label>

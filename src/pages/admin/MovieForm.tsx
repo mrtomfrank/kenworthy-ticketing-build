@@ -103,6 +103,9 @@ export default function MovieForm() {
                 <Input value={genre} onChange={e => setGenre(e.target.value)} placeholder="Drama" />
               </div>
             </div>
+            <div className="space-y-2">
+              <Label>Trailer URL</Label>
+              <Input value={trailerUrl} onChange={e => setTrailerUrl(e.target.value)} placeholder="YouTube, Vimeo, or direct video URL" />
             <div className="flex items-center gap-2">
               <Switch checked={isActive} onCheckedChange={setIsActive} />
               <Label>Active</Label>
