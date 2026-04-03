@@ -329,6 +329,12 @@ export default function Index() {
         </Card>
       </section>
 
+      <ProductionDetailDrawer
+        production={selectedProduction}
+        open={drawerOpen}
+        onOpenChange={setDrawerOpen}
+      />
+
       <footer className="border-t border-border py-8">
         <div className="container text-center text-sm text-muted-foreground">
           <p>© {new Date().getFullYear()} The Kenworthy Performing Arts Centre • Moscow, Idaho</p>
