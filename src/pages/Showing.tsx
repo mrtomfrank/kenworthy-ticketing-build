@@ -41,7 +41,12 @@ export default function Showing() {
 
   const [priceTiers, setPriceTiers] = useState<PriceTier[]>([]);
   const [tierQuantities, setTierQuantities] = useState<Record<string, number>>({});
-  const [selectedTierId, setSelectedTierId] = useState<string>(''); // for assigned seating: one tier at a time
+  const [selectedTierId, setSelectedTierId] = useState<string>('');
+
+  // Film Pass state
+  const [userPasses, setUserPasses] = useState<any[]>([]);
+  const [selectedPassId, setSelectedPassId] = useState<string>('');
+  const [useFilmPass, setUseFilmPass] = useState(false);
 
   const hasTiers = priceTiers.length > 0;
   const isAssignedSeating = showing?.requires_seat_selection;
