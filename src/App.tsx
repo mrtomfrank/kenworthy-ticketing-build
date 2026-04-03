@@ -38,6 +38,7 @@ const App = () => (
               <Route path="/reset-password" element={<ResetPassword />} />
               <Route path="/showing/:id" element={<Showing />} />
               <Route path="/my-tickets" element={<MyTickets />} />
+              <Route path="/my-passes" element={<MyPasses />} />
               <Route path="/profile" element={<Profile />} />
               <Route path="/admin" element={<AdminDashboard />} />
               <Route path="/admin/movies/:id" element={<MovieForm />} />

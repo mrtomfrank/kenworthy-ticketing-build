@@ -32,6 +32,11 @@ export function Layout({ children }: { children: React.ReactNode }) {
                   </Link>
                 </Button>
                 <Button variant="ghost" size="sm" asChild>
+                  <Link to="/my-passes">
+                    <CreditCard className="h-4 w-4 mr-1" /> Film Passes
+                  </Link>
+                </Button>
+                <Button variant="ghost" size="sm" asChild>
                   <Link to="/profile">
                     <User className="h-4 w-4 mr-1" /> Profile
                   </Link>
