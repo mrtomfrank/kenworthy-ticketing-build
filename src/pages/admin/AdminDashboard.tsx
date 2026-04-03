@@ -342,6 +342,11 @@ export default function AdminDashboard() {
           <ConcessionItemsTab />
         </TabsContent>
 
+        {/* Film Passes Tab */}
+        <TabsContent value="passes">
+          <FilmPassesTab />
+        </TabsContent>
+
         {/* Analytics Tab */}
         <TabsContent value="analytics">
           <AnalyticsTab />
