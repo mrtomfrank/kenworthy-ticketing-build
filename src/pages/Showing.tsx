@@ -195,12 +195,27 @@ export default function Showing() {
     total = result.total;
   }
 
+  // Film pass: check if selected pass covers the total
+  const selectedPass = userPasses.find((p: any) => p.id === selectedPassId);
+  const passCoversTotal = useFilmPass && selectedPass && Number(selectedPass.remaining_balance) >= subtotal;
+
   const handlePurchase = async () => {
     if (!user) { navigate('/auth'); return; }
     if (ticketCount === 0) { toast.error('Please select at least one ticket'); return; }
 
+    if (useFilmPass && !selectedPass) {
+      toast.error('Please select a film pass');
+      return;
+    }
+
+    if (useFilmPass && !passCoversTotal) {
+      toast.error(`Insufficient pass balance. Need $${subtotal.toFixed(2)}, have $${Number(selectedPass.remaining_balance).toFixed(2)}`);
+      return;
+    }
+
     setPurchasing(true);
     try {
+      const paymentMethod = useFilmPass ? 'film_pass' : 'online';
       let ticketRows;
 
       if (hasTiers) {
@@ -216,7 +231,7 @@ export default function Showing() {
             }],
             userId: user.id,
             showingId: id!,
-            paymentMethod: 'online',
+            paymentMethod,
           });
         } else {
           const items: TicketLineItem[] = priceTiers
@@ -226,7 +241,7 @@ export default function Showing() {
             lineItems: items,
             userId: user.id,
             showingId: id!,
-            paymentMethod: 'online',
+            paymentMethod,
           });
         }
       } else {
@@ -236,14 +251,28 @@ export default function Showing() {
           userId: user.id,
           showingId: id!,
           ticketPrice: showing.ticket_price,
-          paymentMethod: 'online',
+          paymentMethod,
         });
       }
 
-      const { error } = await supabase.from('tickets').insert(ticketRows);
+      const { data: ticketData, error } = await supabase.from('tickets').insert(ticketRows).select('id');
       if (error) throw error;
 
-      toast.success(`${ticketCount} ticket(s) purchased successfully!`);
+      // Redeem film pass for each ticket
+      if (useFilmPass && ticketData) {
+        for (const ticket of ticketData) {
+          // Calculate per-ticket price (subtotal / count)
+          const perTicketAmount = Math.round((subtotal / ticketCount) * 100) / 100;
+          const { error: redeemError } = await supabase.rpc('redeem_film_pass', {
+            p_pass_id: selectedPassId,
+            p_ticket_id: ticket.id,
+            p_amount: perTicketAmount,
+          });
+          if (redeemError) throw redeemError;
+        }
+      }
+
+      toast.success(`${ticketCount} ticket(s) ${useFilmPass ? 'redeemed with Film Pass' : 'purchased'}!`);
       navigate('/my-tickets');
     } catch (err: any) {
       toast.error(err.message || 'Failed to purchase tickets');
