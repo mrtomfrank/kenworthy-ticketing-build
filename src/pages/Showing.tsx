@@ -122,6 +122,26 @@ export default function Showing() {
     load();
   }, [id, navigate]);
 
+  // Load user's film passes
+  useEffect(() => {
+    if (!user) return;
+    async function loadPasses() {
+      const { data } = await supabase
+        .from('user_film_passes')
+        .select('*, film_pass_types!user_film_passes_pass_type_id_fkey(name)')
+        .eq('user_id', user!.id)
+        .gt('remaining_balance', 0);
+
+      const valid = (data || []).filter((p: any) =>
+        !p.expires_at || new Date(p.expires_at) > new Date()
+      ).map((p: any) => ({ ...p, pass_type_name: p.film_pass_types?.name || 'Film Pass' }));
+
+      setUserPasses(valid);
+      if (valid.length > 0) setSelectedPassId(valid[0].id);
+    }
+    loadPasses();
+  }, [user]);
+
   const toggleSeat = (seatId: string) => {
     if (takenSeatIds.has(seatId)) return;
     setSelectedSeats(prev => {
