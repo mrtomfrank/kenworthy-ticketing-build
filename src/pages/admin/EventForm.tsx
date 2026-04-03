@@ -43,6 +43,7 @@ export default function EventForm() {
           setTicketType(data.ticket_type);
           setRsvpUrl(data.rsvp_url || '');
           setIsActive(data.is_active);
+          setTrailerUrl(data.trailer_url || '');
         }
       });
     }
