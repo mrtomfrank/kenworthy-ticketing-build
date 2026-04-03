@@ -61,6 +61,7 @@ export default function EventForm() {
       ticket_type: ticketType,
       rsvp_url: rsvpUrl || null,
       is_active: isActive,
+      trailer_url: trailerUrl || null,
     };
 
     const { error } = isEdit
