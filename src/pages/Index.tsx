@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Film, Clock, Calendar, MapPin, Music, Sparkles } from 'lucide-react';
 import { format } from 'date-fns';
+import { ProductionDetailDrawer } from '@/components/ProductionDetailDrawer';
 
 interface ShowingInfo {
   id: string;
