@@ -19,6 +19,7 @@ interface MovieWithShowings {
   title: string;
   description: string | null;
   poster_url: string | null;
+  trailer_url: string | null;
   duration_minutes: number;
   rating: string | null;
   genre: string | null;
@@ -30,6 +31,7 @@ interface EventWithShowings {
   title: string;
   description: string | null;
   poster_url: string | null;
+  trailer_url: string | null;
   rating: string | null;
   genre: string | null;
   ticket_type: string;
@@ -42,6 +44,7 @@ interface ConcertWithShowings {
   title: string;
   description: string | null;
   poster_url: string | null;
+  trailer_url: string | null;
   rating: string | null;
   genre: string | null;
   showings: ShowingInfo[];
