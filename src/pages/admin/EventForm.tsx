@@ -26,6 +26,7 @@ export default function EventForm() {
   const [ticketType, setTicketType] = useState<'ticketed' | 'rsvp' | 'info_only'>('ticketed');
   const [rsvpUrl, setRsvpUrl] = useState('');
   const [isActive, setIsActive] = useState(false);
+  const [trailerUrl, setTrailerUrl] = useState('');
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
