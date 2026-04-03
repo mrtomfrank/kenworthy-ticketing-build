@@ -136,8 +136,9 @@ export default function Index() {
             {movies.map((movie, i) => (
               <Card
                 key={movie.id}
-                className="glass overflow-hidden hover:glow-primary transition-shadow duration-300 opacity-0 animate-fade-in"
+                className="glass overflow-hidden hover:glow-primary transition-shadow duration-300 opacity-0 animate-fade-in cursor-pointer"
                 style={{ animationDelay: `${i * 100}ms` }}
+                onClick={() => { setSelectedProduction({ ...movie, type: 'movie' }); setDrawerOpen(true); }}
               >
                 <div className="aspect-[2/3] bg-secondary flex items-center justify-center relative overflow-hidden">
                   {movie.poster_url ? (
