@@ -4,9 +4,11 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/lib/auth';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
-import { Film, Calendar, Clock, DollarSign, Check, Minus, Plus, MapPin, Sparkles, Music } from 'lucide-react';
+import { Film, Calendar, Clock, DollarSign, Check, Minus, Plus, MapPin, Sparkles, Music, CreditCard } from 'lucide-react';
 import { SeatMap } from '@/components/SeatMap';
 import { type Seat, type PriceTier, TAX_RATE, buildTicketRows, computeOrderTotals, computeLineItemTotals, type TicketLineItem } from '@/lib/booking';
 
