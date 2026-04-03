@@ -54,6 +54,7 @@ export default function ConcertForm() {
       genre: genre || null,
       rating: rating || null,
       is_active: isActive,
+      trailer_url: trailerUrl || null,
     };
 
     const { error } = isEdit
