@@ -12,7 +12,7 @@ import { toast } from 'sonner';
 import { format } from 'date-fns';
 import {
   ShoppingCart, Film, User, Loader2, CheckCircle2, AlertTriangle,
-  RotateCcw, Banknote, CreditCard, Minus, Plus, UtensilsCrossed,
+  RotateCcw, Banknote, CreditCard, Minus, Plus, UtensilsCrossed, Ticket,
 } from 'lucide-react';
 import {
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
