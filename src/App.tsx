@@ -9,6 +9,7 @@ import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import Showing from "./pages/Showing";
 import MyTickets from "./pages/MyTickets";
+import MyPasses from "./pages/MyPasses";
 import Profile from "./pages/Profile";
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import MovieForm from "./pages/admin/MovieForm";
