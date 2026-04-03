@@ -1,7 +1,7 @@
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/lib/auth';
 import { Button } from '@/components/ui/button';
-import { Film, Ticket, LogOut, Shield, User } from 'lucide-react';
+import { Film, Ticket, LogOut, Shield, User, CreditCard } from 'lucide-react';
 
 export function Layout({ children }: { children: React.ReactNode }) {
   const { user, isAdmin, signOut } = useAuth();
@@ -29,6 +29,11 @@ export function Layout({ children }: { children: React.ReactNode }) {
                 <Button variant="ghost" size="sm" asChild>
                   <Link to="/my-tickets">
                     <Ticket className="h-4 w-4 mr-1" /> My Tickets
+                  </Link>
+                </Button>
+                <Button variant="ghost" size="sm" asChild>
+                  <Link to="/my-passes">
+                    <CreditCard className="h-4 w-4 mr-1" /> Film Passes
                   </Link>
                 </Button>
                 <Button variant="ghost" size="sm" asChild>

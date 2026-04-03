@@ -12,7 +12,7 @@ import { toast } from 'sonner';
 import { format } from 'date-fns';
 import {
   ShoppingCart, Film, User, Loader2, CheckCircle2, AlertTriangle,
-  RotateCcw, Banknote, CreditCard, Minus, Plus, UtensilsCrossed,
+  RotateCcw, Banknote, CreditCard, Minus, Plus, UtensilsCrossed, Ticket,
 } from 'lucide-react';
 import {
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
@@ -22,6 +22,7 @@ import { DailySalesSummary } from '@/components/pos/DailySalesSummary';
 import { TransactionHistory, type SessionTransaction } from '@/components/pos/TransactionHistory';
 import { PaymentMethodSelector, type PaymentMethod } from '@/components/pos/PaymentMethodSelector';
 import { ConcessionPOS } from '@/components/pos/ConcessionPOS';
+import { FilmPassPOS } from '@/components/pos/FilmPassPOS';
 import { type Seat, type PriceTier, type TicketLineItem, buildTicketRows, computeLineItemTotals, computeOrderTotals, TAX_RATE } from '@/lib/booking';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
@@ -485,9 +486,10 @@ export default function StaffPOS() {
       />
 
       <Tabs defaultValue="tickets" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-2 max-w-xs">
+        <TabsList className="grid w-full grid-cols-3 max-w-sm">
           <TabsTrigger value="tickets"><ShoppingCart className="h-4 w-4 mr-1" /> Tickets</TabsTrigger>
           <TabsTrigger value="concessions"><UtensilsCrossed className="h-4 w-4 mr-1" /> Concessions</TabsTrigger>
+          <TabsTrigger value="film-passes"><Ticket className="h-4 w-4 mr-1" /> Film Passes</TabsTrigger>
         </TabsList>
 
         <TabsContent value="tickets">
@@ -779,6 +781,10 @@ export default function StaffPOS() {
 
         <TabsContent value="concessions">
           <ConcessionPOS onSaleComplete={loadDailyStats} />
+        </TabsContent>
+
+        <TabsContent value="film-passes">
+          <FilmPassPOS />
         </TabsContent>
       </Tabs>
 

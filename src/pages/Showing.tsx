@@ -4,9 +4,11 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/lib/auth';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
-import { Film, Calendar, Clock, DollarSign, Check, Minus, Plus, MapPin, Sparkles, Music } from 'lucide-react';
+import { Film, Calendar, Clock, DollarSign, Check, Minus, Plus, MapPin, Sparkles, Music, CreditCard } from 'lucide-react';
 import { SeatMap } from '@/components/SeatMap';
 import { type Seat, type PriceTier, TAX_RATE, buildTicketRows, computeOrderTotals, computeLineItemTotals, type TicketLineItem } from '@/lib/booking';
 
@@ -39,7 +41,12 @@ export default function Showing() {
 
   const [priceTiers, setPriceTiers] = useState<PriceTier[]>([]);
   const [tierQuantities, setTierQuantities] = useState<Record<string, number>>({});
-  const [selectedTierId, setSelectedTierId] = useState<string>(''); // for assigned seating: one tier at a time
+  const [selectedTierId, setSelectedTierId] = useState<string>('');
+
+  // Film Pass state
+  const [userPasses, setUserPasses] = useState<any[]>([]);
+  const [selectedPassId, setSelectedPassId] = useState<string>('');
+  const [useFilmPass, setUseFilmPass] = useState(false);
 
   const hasTiers = priceTiers.length > 0;
   const isAssignedSeating = showing?.requires_seat_selection;
@@ -115,6 +122,26 @@ export default function Showing() {
     load();
   }, [id, navigate]);
 
+  // Load user's film passes
+  useEffect(() => {
+    if (!user) return;
+    async function loadPasses() {
+      const { data } = await supabase
+        .from('user_film_passes')
+        .select('*, film_pass_types!user_film_passes_pass_type_id_fkey(name)')
+        .eq('user_id', user!.id)
+        .gt('remaining_balance', 0);
+
+      const valid = (data || []).filter((p: any) =>
+        !p.expires_at || new Date(p.expires_at) > new Date()
+      ).map((p: any) => ({ ...p, pass_type_name: p.film_pass_types?.name || 'Film Pass' }));
+
+      setUserPasses(valid);
+      if (valid.length > 0) setSelectedPassId(valid[0].id);
+    }
+    loadPasses();
+  }, [user]);
+
   const toggleSeat = (seatId: string) => {
     if (takenSeatIds.has(seatId)) return;
     setSelectedSeats(prev => {
@@ -168,12 +195,27 @@ export default function Showing() {
     total = result.total;
   }
 
+  // Film pass: check if selected pass covers the total
+  const selectedPass = userPasses.find((p: any) => p.id === selectedPassId);
+  const passCoversTotal = useFilmPass && selectedPass && Number(selectedPass.remaining_balance) >= subtotal;
+
   const handlePurchase = async () => {
     if (!user) { navigate('/auth'); return; }
     if (ticketCount === 0) { toast.error('Please select at least one ticket'); return; }
 
+    if (useFilmPass && !selectedPass) {
+      toast.error('Please select a film pass');
+      return;
+    }
+
+    if (useFilmPass && !passCoversTotal) {
+      toast.error(`Insufficient pass balance. Need $${subtotal.toFixed(2)}, have $${Number(selectedPass.remaining_balance).toFixed(2)}`);
+      return;
+    }
+
     setPurchasing(true);
     try {
+      const paymentMethod = useFilmPass ? 'film_pass' : 'online';
       let ticketRows;
 
       if (hasTiers) {
@@ -189,7 +231,7 @@ export default function Showing() {
             }],
             userId: user.id,
             showingId: id!,
-            paymentMethod: 'online',
+            paymentMethod,
           });
         } else {
           const items: TicketLineItem[] = priceTiers
@@ -199,7 +241,7 @@ export default function Showing() {
             lineItems: items,
             userId: user.id,
             showingId: id!,
-            paymentMethod: 'online',
+            paymentMethod,
           });
         }
       } else {
@@ -209,14 +251,28 @@ export default function Showing() {
           userId: user.id,
           showingId: id!,
           ticketPrice: showing.ticket_price,
-          paymentMethod: 'online',
+          paymentMethod,
         });
       }
 
-      const { error } = await supabase.from('tickets').insert(ticketRows);
+      const { data: ticketData, error } = await supabase.from('tickets').insert(ticketRows).select('id');
       if (error) throw error;
 
-      toast.success(`${ticketCount} ticket(s) purchased successfully!`);
+      // Redeem film pass for each ticket
+      if (useFilmPass && ticketData) {
+        for (const ticket of ticketData) {
+          // Calculate per-ticket price (subtotal / count)
+          const perTicketAmount = Math.round((subtotal / ticketCount) * 100) / 100;
+          const { error: redeemError } = await supabase.rpc('redeem_film_pass', {
+            p_pass_id: selectedPassId,
+            p_ticket_id: ticket.id,
+            p_amount: perTicketAmount,
+          });
+          if (redeemError) throw redeemError;
+        }
+      }
+
+      toast.success(`${ticketCount} ticket(s) ${useFilmPass ? 'redeemed with Film Pass' : 'purchased'}!`);
       navigate('/my-tickets');
     } catch (err: any) {
       toast.error(err.message || 'Failed to purchase tickets');
@@ -441,17 +497,58 @@ export default function Showing() {
                       <span className="text-primary">${total.toFixed(2)}</span>
                     </div>
                   </div>
+
+                  {/* Film Pass option */}
+                  {user && userPasses.length > 0 && (
+                    <div className="border-t border-border pt-3 space-y-3">
+                      <div className="flex items-center justify-between">
+                        <Label className="flex items-center gap-2 cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={useFilmPass}
+                            onChange={e => setUseFilmPass(e.target.checked)}
+                            className="rounded"
+                          />
+                          <CreditCard className="h-4 w-4 text-primary" />
+                          Use Film Pass
+                        </Label>
+                      </div>
+                      {useFilmPass && (
+                        <Select value={selectedPassId} onValueChange={setSelectedPassId}>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select a pass..." />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {userPasses.map((p: any) => (
+                              <SelectItem key={p.id} value={p.id}>
+                                {p.pass_type_name} — ${Number(p.remaining_balance).toFixed(2)} left
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      )}
+                      {useFilmPass && selectedPass && !passCoversTotal && (
+                        <p className="text-xs text-destructive">
+                          Insufficient balance: ${Number(selectedPass.remaining_balance).toFixed(2)} available, ${subtotal.toFixed(2)} needed
+                        </p>
+                      )}
+                    </div>
+                  )}
+
                   <Button
                     className="w-full"
                     size="lg"
                     onClick={handlePurchase}
-                    disabled={purchasing}
+                    disabled={purchasing || (useFilmPass && !passCoversTotal)}
                   >
-                    <Check className="h-4 w-4 mr-1" />
-                    {purchasing ? 'Processing...' : `Purchase ${ticketCount} Ticket(s)`}
+                    {useFilmPass ? (
+                      <><CreditCard className="h-4 w-4 mr-1" /> {purchasing ? 'Redeeming...' : `Redeem Film Pass`}</>
+                    ) : (
+                      <><Check className="h-4 w-4 mr-1" /> {purchasing ? 'Processing...' : `Purchase ${ticketCount} Ticket(s)`}</>
+                    )}
                   </Button>
                   <p className="text-xs text-muted-foreground text-center">
-                    Simulated checkout — no real charge
+                    {useFilmPass ? 'Pass balance will be deducted' : 'Simulated checkout — no real charge'}
                   </p>
                 </>
               )}
