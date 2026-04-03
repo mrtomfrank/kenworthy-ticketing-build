@@ -55,6 +55,8 @@ export default function Index() {
   const [events, setEvents] = useState<EventWithShowings[]>([]);
   const [concerts, setConcerts] = useState<ConcertWithShowings[]>([]);
   const [loading, setLoading] = useState(true);
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [selectedProduction, setSelectedProduction] = useState<any>(null);
 
   useEffect(() => {
     async function fetchAll() {
