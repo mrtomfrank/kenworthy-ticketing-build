@@ -22,7 +22,7 @@ import { DailySalesSummary } from '@/components/pos/DailySalesSummary';
 import { TransactionHistory, type SessionTransaction } from '@/components/pos/TransactionHistory';
 import { PaymentMethodSelector, type PaymentMethod } from '@/components/pos/PaymentMethodSelector';
 import { ConcessionPOS } from '@/components/pos/ConcessionPOS';
-import { type Seat, buildTicketRows, computeOrderTotals } from '@/lib/booking';
+import { type Seat, type PriceTier, type TicketLineItem, buildTicketRows, computeLineItemTotals, computeOrderTotals, TAX_RATE } from '@/lib/booking';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 interface ShowingOption {
@@ -51,6 +51,13 @@ export default function StaffPOS() {
   const [loadingSeats, setLoadingSeats] = useState(false);
   const [gaQuantity, setGaQuantity] = useState(0);
   const [gaTicketsSold, setGaTicketsSold] = useState(0);
+
+  // Tiered pricing state
+  const [priceTiers, setPriceTiers] = useState<PriceTier[]>([]);
+  const [tierQuantities, setTierQuantities] = useState<Record<string, number>>({});
+  const [selectedTierId, setSelectedTierId] = useState(''); // for assigned seating
+
+  const hasTiers = priceTiers.length > 0;
 
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('cash');
   const [paymentStatus, setPaymentStatus] = useState<PaymentStatus>('idle');
@@ -110,15 +117,44 @@ export default function StaffPOS() {
     loadShowings();
   }, [isAdmin, authLoading, navigate]);
 
+  // Load seats + price tiers when showing changes
   useEffect(() => {
     if (!selectedShowingId) return;
     setSelectedSeats(new Set());
     setGaQuantity(0);
+    setTierQuantities({});
+    setSelectedTierId('');
     setLoadingSeats(true);
 
     const currentShowing = showings.find(s => s.id === selectedShowingId);
 
-    async function loadSeats() {
+    async function loadData() {
+      // Load price tiers
+      const { data: tiersData } = await supabase
+        .from('showing_price_tiers')
+        .select('id, tier_name, price, display_order')
+        .eq('showing_id', selectedShowingId)
+        .eq('is_active', true)
+        .order('display_order');
+
+      const tiers: PriceTier[] = (tiersData || []).map(t => ({
+        id: t.id,
+        tier_name: t.tier_name,
+        price: Number(t.price),
+        display_order: t.display_order,
+      }));
+      setPriceTiers(tiers);
+
+      // Initialize tier quantities to 0
+      const initQty: Record<string, number> = {};
+      tiers.forEach(t => { initQty[t.id] = 0; });
+      setTierQuantities(initQty);
+
+      // Default selected tier for assigned seating
+      if (tiers.length > 0) {
+        setSelectedTierId(tiers[0].id);
+      }
+
       if (currentShowing?.requires_seat_selection) {
         const [seatsRes, ticketsRes] = await Promise.all([
           supabase.from('seats').select('*').order('seat_row').order('seat_number'),
@@ -136,17 +172,54 @@ export default function StaffPOS() {
       }
       setLoadingSeats(false);
     }
-    loadSeats();
+    loadData();
   }, [selectedShowingId, showings]);
 
   const selectedShowing = showings.find(s => s.id === selectedShowingId);
   const isAssignedSeating = selectedShowing?.requires_seat_selection;
-  const ticketCount = isAssignedSeating ? selectedSeats.size : gaQuantity;
+
+  // Build line items from current selection
+  const lineItems: TicketLineItem[] = (() => {
+    if (!selectedShowing) return [];
+
+    if (hasTiers) {
+      if (isAssignedSeating) {
+        // All selected seats use the chosen tier
+        const tier = priceTiers.find(t => t.id === selectedTierId);
+        if (!tier || selectedSeats.size === 0) return [];
+        return [{
+          tierId: tier.id,
+          tierName: tier.tier_name,
+          price: tier.price,
+          quantity: selectedSeats.size,
+          seatIds: Array.from(selectedSeats),
+        }];
+      } else {
+        // GA with tiers — one line item per tier with quantity > 0
+        return priceTiers
+          .filter(t => (tierQuantities[t.id] || 0) > 0)
+          .map(t => ({
+            tierId: t.id,
+            tierName: t.tier_name,
+            price: t.price,
+            quantity: tierQuantities[t.id],
+          }));
+      }
+    }
+
+    // No tiers — legacy single price
+    return [];
+  })();
+
+  const ticketCount = hasTiers
+    ? lineItems.reduce((sum, li) => sum + (li.seatIds ? li.seatIds.length : li.quantity), 0)
+    : (isAssignedSeating ? selectedSeats.size : gaQuantity);
+
   const gaAvailable = (selectedShowing?.total_seats || 200) - gaTicketsSold;
-  const { subtotal, tax, total } = computeOrderTotals(
-    ticketCount,
-    selectedShowing?.ticket_price || 0
-  );
+
+  const { subtotal, tax, total } = hasTiers
+    ? computeLineItemTotals(lineItems)
+    : computeOrderTotals(ticketCount, selectedShowing?.ticket_price || 0);
 
   const toggleSeat = (seatId: string) => {
     if (takenSeatIds.has(seatId)) return;
@@ -163,18 +236,19 @@ export default function StaffPOS() {
     if (!user) throw new Error('Not authenticated');
 
     const ticketRows = buildTicketRows({
-      selectedSeats,
-      quantity: isAssignedSeating ? undefined : gaQuantity,
+      lineItems: hasTiers ? lineItems : undefined,
+      selectedSeats: !hasTiers ? selectedSeats : undefined,
+      quantity: !hasTiers && !isAssignedSeating ? gaQuantity : undefined,
       userId: user.id,
       showingId: selectedShowingId,
-      ticketPrice: selectedShowing!.ticket_price,
+      ticketPrice: !hasTiers ? selectedShowing!.ticket_price : undefined,
       paymentMethod: method,
     });
 
     const { data, error } = await supabase.from('tickets').insert(ticketRows).select('id');
     if (error) throw error;
     return (data || []).map(t => t.id);
-  }, [selectedSeats, gaQuantity, isAssignedSeating, selectedShowingId, selectedShowing]);
+  }, [selectedSeats, gaQuantity, isAssignedSeating, selectedShowingId, selectedShowing, hasTiers, lineItems]);
 
   const refreshAfterSale = useCallback(async () => {
     if (isAssignedSeating) {
@@ -200,7 +274,9 @@ export default function StaffPOS() {
           const seat = seats.find(s => s.id === seatId);
           return seat ? `${seat.seat_row}${seat.seat_number}` : '?';
         })
-      : [`GA ×${gaQuantity}`];
+      : hasTiers
+        ? lineItems.filter(li => li.quantity > 0).map(li => `${li.tierName} ×${li.seatIds ? li.seatIds.length : li.quantity}`)
+        : [`GA ×${gaQuantity}`];
 
     const tx: SessionTransaction = {
       id: crypto.randomUUID(),
@@ -213,11 +289,16 @@ export default function StaffPOS() {
       refunded: false,
     };
     setTransactions(prev => [tx, ...prev]);
-  }, [selectedSeats, seats, selectedShowing, total, isAssignedSeating, gaQuantity]);
+  }, [selectedSeats, seats, selectedShowing, total, isAssignedSeating, gaQuantity, hasTiers, lineItems]);
 
   const resetForm = useCallback(() => {
     setSelectedSeats(new Set());
     setGaQuantity(0);
+    setTierQuantities(prev => {
+      const reset: Record<string, number> = {};
+      Object.keys(prev).forEach(k => { reset[k] = 0; });
+      return reset;
+    });
     setPatronEmail('');
     setPatronPhone('');
     setPaymentStatus('idle');
@@ -230,10 +311,7 @@ export default function StaffPOS() {
     try {
       const ticketIds = await createTickets('cash');
       addTransaction(ticketIds, 'cash');
-      toast.success(
-        `${selectedSeats.size} ticket(s) sold (cash)!`,
-        { duration: 5000 }
-      );
+      toast.success(`${ticketCount} ticket(s) sold (cash)!`, { duration: 5000 });
       resetForm();
       await refreshAfterSale();
       loadDailyStats();
@@ -256,7 +334,7 @@ export default function StaffPOS() {
         body: {
           action: 'create_checkout',
           amount_cents: amountCents,
-          note: `${selectedShowing!.movie_title} — ${selectedSeats.size} ticket(s)`,
+          note: `${selectedShowing!.movie_title} — ${ticketCount} ticket(s)`,
           idempotency_key: idempotencyKey,
         },
       });
@@ -272,7 +350,7 @@ export default function StaffPOS() {
         const ticketIds = await createTickets('card');
         addTransaction(ticketIds, 'card');
         toast.success(
-          `${selectedSeats.size} ticket(s) sold (card)! ${data.simulated ? '(Sandbox simulation)' : ''}`,
+          `${ticketCount} ticket(s) sold (card)! ${data.simulated ? '(Sandbox simulation)' : ''}`,
           { duration: 5000 }
         );
         resetForm();
@@ -307,7 +385,7 @@ export default function StaffPOS() {
           setPaymentStatus('completed');
           const ticketIds = await createTickets('card');
           addTransaction(ticketIds, 'card');
-          toast.success(`Payment complete! ${selectedSeats.size} ticket(s) sold.`);
+          toast.success(`Payment complete! ${ticketCount} ticket(s) sold.`);
           resetForm();
           loadDailyStats();
           await refreshAfterSale();
@@ -384,6 +462,9 @@ export default function StaffPOS() {
     }
   };
 
+  // Total GA tier quantity for availability check
+  const totalTierQuantity = Object.values(tierQuantities).reduce((a, b) => a + b, 0);
+
   if (authLoading) {
     return <div className="container py-16 text-center text-muted-foreground">Loading...</div>;
   }
@@ -412,7 +493,7 @@ export default function StaffPOS() {
         <TabsContent value="tickets">
 
       <div className="grid lg:grid-cols-3 gap-6">
-        {/* Left: Showing selection + Seating map + Transactions */}
+        {/* Left: Showing selection + Seating/GA + Transactions */}
         <div className="lg:col-span-2 space-y-6">
           {/* Showing selector */}
           <Card className="glass">
@@ -444,7 +525,24 @@ export default function StaffPOS() {
                 <CardHeader>
                   <CardTitle className="font-display text-lg">Seating Map</CardTitle>
                 </CardHeader>
-                <CardContent>
+                <CardContent className="space-y-4">
+                  {hasTiers && (
+                    <div className="space-y-2">
+                      <Label>Ticket Type</Label>
+                      <Select value={selectedTierId} onValueChange={setSelectedTierId}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select tier..." />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {priceTiers.map(t => (
+                            <SelectItem key={t.id} value={t.id}>
+                              {t.tier_name} — ${t.price.toFixed(2)}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  )}
                   <SeatMap
                     seats={seats}
                     takenSeatIds={takenSeatIds}
@@ -459,22 +557,55 @@ export default function StaffPOS() {
                 <CardHeader>
                   <CardTitle className="font-display text-lg">General Admission</CardTitle>
                 </CardHeader>
-                <CardContent>
-                  <div className="flex items-center justify-between p-4 rounded-lg bg-secondary/50">
-                    <div>
-                      <p className="font-medium">Tickets</p>
-                      <p className="text-xs text-muted-foreground">{gaAvailable} available</p>
+                <CardContent className="space-y-3">
+                  {hasTiers ? (
+                    // Tiered GA — one quantity row per tier
+                    priceTiers.map(tier => (
+                      <div key={tier.id} className="flex items-center justify-between p-4 rounded-lg bg-secondary/50">
+                        <div>
+                          <p className="font-medium">{tier.tier_name}</p>
+                          <p className="text-xs text-muted-foreground">${tier.price.toFixed(2)} each</p>
+                        </div>
+                        <div className="flex items-center gap-3">
+                          <Button
+                            variant="outline"
+                            size="icon"
+                            onClick={() => setTierQuantities(prev => ({ ...prev, [tier.id]: Math.max(0, (prev[tier.id] || 0) - 1) }))}
+                            disabled={(tierQuantities[tier.id] || 0) === 0}
+                          >
+                            <Minus className="h-4 w-4" />
+                          </Button>
+                          <span className="text-xl font-bold w-8 text-center">{tierQuantities[tier.id] || 0}</span>
+                          <Button
+                            variant="outline"
+                            size="icon"
+                            onClick={() => setTierQuantities(prev => ({ ...prev, [tier.id]: Math.min(gaAvailable - totalTierQuantity + (prev[tier.id] || 0), (prev[tier.id] || 0) + 1) }))}
+                            disabled={totalTierQuantity >= gaAvailable}
+                          >
+                            <Plus className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    // Legacy single-price GA
+                    <div className="flex items-center justify-between p-4 rounded-lg bg-secondary/50">
+                      <div>
+                        <p className="font-medium">Tickets</p>
+                        <p className="text-xs text-muted-foreground">{gaAvailable} available</p>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <Button variant="outline" size="icon" onClick={() => setGaQuantity(q => Math.max(0, q - 1))} disabled={gaQuantity === 0}>
+                          <Minus className="h-4 w-4" />
+                        </Button>
+                        <span className="text-xl font-bold w-8 text-center">{gaQuantity}</span>
+                        <Button variant="outline" size="icon" onClick={() => setGaQuantity(q => Math.min(gaAvailable, q + 1))} disabled={gaQuantity >= gaAvailable}>
+                          <Plus className="h-4 w-4" />
+                        </Button>
+                      </div>
                     </div>
-                    <div className="flex items-center gap-3">
-                      <Button variant="outline" size="icon" onClick={() => setGaQuantity(q => Math.max(0, q - 1))} disabled={gaQuantity === 0}>
-                        <Minus className="h-4 w-4" />
-                      </Button>
-                      <span className="text-xl font-bold w-8 text-center">{gaQuantity}</span>
-                      <Button variant="outline" size="icon" onClick={() => setGaQuantity(q => Math.min(gaAvailable, q + 1))} disabled={gaQuantity >= gaAvailable}>
-                        <Plus className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </div>
+                  )}
+                  <p className="text-xs text-muted-foreground text-right">{gaAvailable} seats available</p>
                 </CardContent>
               </Card>
             )
@@ -537,7 +668,25 @@ export default function StaffPOS() {
                     {selectedShowing && format(new Date(selectedShowing.start_time), 'MMM d, yyyy h:mm a')}
                   </p>
                   <div className="space-y-1 text-sm">
-                    {isAssignedSeating ? (
+                    {hasTiers ? (
+                      // Tiered summary
+                      <>
+                        {lineItems.map(li => (
+                          <div key={li.tierId} className="flex justify-between">
+                            <span>{li.tierName} × {li.seatIds ? li.seatIds.length : li.quantity}</span>
+                            <span>${((li.seatIds ? li.seatIds.length : li.quantity) * li.price).toFixed(2)}</span>
+                          </div>
+                        ))}
+                        {isAssignedSeating && selectedSeats.size > 0 && (
+                          <p className="text-xs text-muted-foreground mt-1">
+                            Seats: {Array.from(selectedSeats).map(seatId => {
+                              const seat = seats.find(s => s.id === seatId);
+                              return seat ? `${seat.seat_row}${seat.seat_number}` : '?';
+                            }).join(', ')}
+                          </p>
+                        )}
+                      </>
+                    ) : isAssignedSeating ? (
                       Array.from(selectedSeats).map(seatId => {
                         const seat = seats.find(s => s.id === seatId);
                         return seat ? (
