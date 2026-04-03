@@ -782,6 +782,10 @@ export default function StaffPOS() {
         <TabsContent value="concessions">
           <ConcessionPOS onSaleComplete={loadDailyStats} />
         </TabsContent>
+
+        <TabsContent value="film-passes">
+          <FilmPassPOS />
+        </TabsContent>
       </Tabs>
 
       {/* Refund confirmation dialog */}
