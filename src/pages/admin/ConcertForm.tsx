@@ -23,6 +23,7 @@ export default function ConcertForm() {
   const [genre, setGenre] = useState('');
   const [rating, setRating] = useState('');
   const [isActive, setIsActive] = useState(false);
+  const [trailerUrl, setTrailerUrl] = useState('');
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
