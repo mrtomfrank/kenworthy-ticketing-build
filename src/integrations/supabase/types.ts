@@ -292,6 +292,44 @@ export type Database = {
         }
         Relationships: []
       }
+      showing_price_tiers: {
+        Row: {
+          created_at: string
+          display_order: number
+          id: string
+          is_active: boolean
+          price: number
+          showing_id: string
+          tier_name: string
+        }
+        Insert: {
+          created_at?: string
+          display_order?: number
+          id?: string
+          is_active?: boolean
+          price?: number
+          showing_id: string
+          tier_name?: string
+        }
+        Update: {
+          created_at?: string
+          display_order?: number
+          id?: string
+          is_active?: boolean
+          price?: number
+          showing_id?: string
+          tier_name?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "showing_price_tiers_showing_id_fkey"
+            columns: ["showing_id"]
+            isOneToOne: false
+            referencedRelation: "showings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       showings: {
         Row: {
           concert_id: string | null
@@ -379,6 +417,7 @@ export type Database = {
           status: string
           tax_amount: number
           tax_rate: number
+          tier_id: string | null
           total_price: number
           user_id: string
         }
@@ -394,6 +433,7 @@ export type Database = {
           status?: string
           tax_amount: number
           tax_rate?: number
+          tier_id?: string | null
           total_price: number
           user_id: string
         }
@@ -409,6 +449,7 @@ export type Database = {
           status?: string
           tax_amount?: number
           tax_rate?: number
+          tier_id?: string | null
           total_price?: number
           user_id?: string
         }
@@ -425,6 +466,13 @@ export type Database = {
             columns: ["showing_id"]
             isOneToOne: false
             referencedRelation: "showings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tickets_tier_id_fkey"
+            columns: ["tier_id"]
+            isOneToOne: false
+            referencedRelation: "showing_price_tiers"
             referencedColumns: ["id"]
           },
           {
