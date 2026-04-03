@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Film, Clock, Calendar, MapPin, Music, Sparkles } from 'lucide-react';
 import { format } from 'date-fns';
+import { ProductionDetailDrawer } from '@/components/ProductionDetailDrawer';
 
 interface ShowingInfo {
   id: string;
@@ -18,6 +19,7 @@ interface MovieWithShowings {
   title: string;
   description: string | null;
   poster_url: string | null;
+  trailer_url: string | null;
   duration_minutes: number;
   rating: string | null;
   genre: string | null;
@@ -29,6 +31,7 @@ interface EventWithShowings {
   title: string;
   description: string | null;
   poster_url: string | null;
+  trailer_url: string | null;
   rating: string | null;
   genre: string | null;
   ticket_type: string;
@@ -41,6 +44,7 @@ interface ConcertWithShowings {
   title: string;
   description: string | null;
   poster_url: string | null;
+  trailer_url: string | null;
   rating: string | null;
   genre: string | null;
   showings: ShowingInfo[];
@@ -51,6 +55,8 @@ export default function Index() {
   const [events, setEvents] = useState<EventWithShowings[]>([]);
   const [concerts, setConcerts] = useState<ConcertWithShowings[]>([]);
   const [loading, setLoading] = useState(true);
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [selectedProduction, setSelectedProduction] = useState<any>(null);
 
   useEffect(() => {
     async function fetchAll() {
@@ -130,8 +136,9 @@ export default function Index() {
             {movies.map((movie, i) => (
               <Card
                 key={movie.id}
-                className="glass overflow-hidden hover:glow-primary transition-shadow duration-300 opacity-0 animate-fade-in"
+                className="glass overflow-hidden hover:glow-primary transition-shadow duration-300 opacity-0 animate-fade-in cursor-pointer"
                 style={{ animationDelay: `${i * 100}ms` }}
+                onClick={() => { setSelectedProduction({ ...movie, type: 'movie' }); setDrawerOpen(true); }}
               >
                 <div className="aspect-[2/3] bg-secondary flex items-center justify-center relative overflow-hidden">
                   {movie.poster_url ? (
@@ -188,8 +195,9 @@ export default function Index() {
             {events.map((event, i) => (
               <Card
                 key={event.id}
-                className="glass overflow-hidden hover:glow-primary transition-shadow duration-300 opacity-0 animate-fade-in"
+                className="glass overflow-hidden hover:glow-primary transition-shadow duration-300 opacity-0 animate-fade-in cursor-pointer"
                 style={{ animationDelay: `${i * 100}ms` }}
+                onClick={() => { setSelectedProduction({ ...event, type: 'event' }); setDrawerOpen(true); }}
               >
                 <div className="aspect-[2/3] bg-secondary flex items-center justify-center relative overflow-hidden">
                   {event.poster_url ? (
@@ -250,8 +258,9 @@ export default function Index() {
             {concerts.map((concert, i) => (
               <Card
                 key={concert.id}
-                className="glass overflow-hidden hover:glow-primary transition-shadow duration-300 opacity-0 animate-fade-in"
+                className="glass overflow-hidden hover:glow-primary transition-shadow duration-300 opacity-0 animate-fade-in cursor-pointer"
                 style={{ animationDelay: `${i * 100}ms` }}
+                onClick={() => { setSelectedProduction({ ...concert, type: 'concert' }); setDrawerOpen(true); }}
               >
                 <div className="aspect-[2/3] bg-secondary flex items-center justify-center relative overflow-hidden">
                   {concert.poster_url ? (
@@ -319,6 +328,12 @@ export default function Index() {
           </div>
         </Card>
       </section>
+
+      <ProductionDetailDrawer
+        production={selectedProduction}
+        open={drawerOpen}
+        onOpenChange={setDrawerOpen}
+      />
 
       <footer className="border-t border-border py-8">
         <div className="container text-center text-sm text-muted-foreground">

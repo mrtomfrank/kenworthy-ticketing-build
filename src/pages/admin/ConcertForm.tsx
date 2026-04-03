@@ -23,6 +23,7 @@ export default function ConcertForm() {
   const [genre, setGenre] = useState('');
   const [rating, setRating] = useState('');
   const [isActive, setIsActive] = useState(false);
+  const [trailerUrl, setTrailerUrl] = useState('');
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
@@ -37,6 +38,7 @@ export default function ConcertForm() {
           setGenre(data.genre || '');
           setRating(data.rating || '');
           setIsActive(data.is_active);
+          setTrailerUrl(data.trailer_url || '');
         }
       });
     }
@@ -52,6 +54,7 @@ export default function ConcertForm() {
       genre: genre || null,
       rating: rating || null,
       is_active: isActive,
+      trailer_url: trailerUrl || null,
     };
 
     const { error } = isEdit
@@ -92,6 +95,10 @@ export default function ConcertForm() {
                 <Label>Rating</Label>
                 <Input value={rating} onChange={e => setRating(e.target.value)} placeholder="NR" />
               </div>
+            </div>
+            <div className="space-y-2">
+              <Label>Trailer URL</Label>
+              <Input value={trailerUrl} onChange={e => setTrailerUrl(e.target.value)} placeholder="YouTube, Vimeo, or direct video URL" />
             </div>
             <div className="flex items-center gap-2">
               <Switch checked={isActive} onCheckedChange={setIsActive} />

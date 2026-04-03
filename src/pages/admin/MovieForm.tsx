@@ -24,6 +24,7 @@ export default function MovieForm() {
   const [rating, setRating] = useState('');
   const [genre, setGenre] = useState('');
   const [isActive, setIsActive] = useState(true);
+  const [trailerUrl, setTrailerUrl] = useState('');
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
@@ -39,6 +40,7 @@ export default function MovieForm() {
           setRating(data.rating || '');
           setGenre(data.genre || '');
           setIsActive(data.is_active);
+          setTrailerUrl(data.trailer_url || '');
         }
       });
     }
@@ -55,6 +57,7 @@ export default function MovieForm() {
       rating: rating || null,
       genre: genre || null,
       is_active: isActive,
+      trailer_url: trailerUrl || null,
     };
 
     const { error } = isEdit
@@ -99,6 +102,10 @@ export default function MovieForm() {
                 <Label>Genre</Label>
                 <Input value={genre} onChange={e => setGenre(e.target.value)} placeholder="Drama" />
               </div>
+            </div>
+            <div className="space-y-2">
+              <Label>Trailer URL</Label>
+              <Input value={trailerUrl} onChange={e => setTrailerUrl(e.target.value)} placeholder="YouTube, Vimeo, or direct video URL" />
             </div>
             <div className="flex items-center gap-2">
               <Switch checked={isActive} onCheckedChange={setIsActive} />
