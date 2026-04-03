@@ -57,6 +57,7 @@ export default function MovieForm() {
       rating: rating || null,
       genre: genre || null,
       is_active: isActive,
+      trailer_url: trailerUrl || null,
     };
 
     const { error } = isEdit
