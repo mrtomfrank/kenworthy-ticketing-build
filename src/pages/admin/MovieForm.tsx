@@ -24,6 +24,7 @@ export default function MovieForm() {
   const [rating, setRating] = useState('');
   const [genre, setGenre] = useState('');
   const [isActive, setIsActive] = useState(true);
+  const [trailerUrl, setTrailerUrl] = useState('');
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
