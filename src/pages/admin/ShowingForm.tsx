@@ -8,8 +8,22 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
+import { Plus, Trash2 } from 'lucide-react';
 
 type Category = 'movie' | 'event' | 'concert';
+
+interface TierRow {
+  id?: string;
+  tier_name: string;
+  price: string;
+  display_order: number;
+}
+
+const DEFAULT_TIERS: TierRow[] = [
+  { tier_name: 'Adult', price: '8.00', display_order: 0 },
+  { tier_name: 'Child', price: '5.00', display_order: 1 },
+  { tier_name: 'Student', price: '6.00', display_order: 2 },
+];
 
 export default function ShowingForm() {
   const { id } = useParams();
@@ -29,11 +43,13 @@ export default function ShowingForm() {
   const [ticketPrice, setTicketPrice] = useState('8.00');
   const [saving, setSaving] = useState(false);
 
+  const [tiers, setTiers] = useState<TierRow[]>([...DEFAULT_TIERS]);
+  const [useTiers, setUseTiers] = useState(true);
+
   useEffect(() => {
     if (authLoading) return;
     if (!isAdmin) { navigate('/'); return; }
 
-    // Load all items (including inactive) so staff can schedule in advance
     Promise.all([
       supabase.from('movies').select('id, title, is_active').order('title'),
       supabase.from('events').select('id, title, ticket_type, is_active').order('title'),
@@ -41,14 +57,17 @@ export default function ShowingForm() {
       supabase.from('venues').select('id, name, has_assigned_seating').order('name'),
     ]).then(([moviesRes, eventsRes, concertsRes, venuesRes]) => {
       setMovies(moviesRes.data || []);
-      // Only show ticketed events (not rsvp or info_only)
       setEvents((eventsRes.data || []).filter((e: any) => e.ticket_type === 'ticketed'));
       setConcerts(concertsRes.data || []);
       setVenues(venuesRes.data || []);
     });
 
     if (isEdit) {
-      supabase.from('showings').select('*').eq('id', id).single().then(({ data }) => {
+      Promise.all([
+        supabase.from('showings').select('*').eq('id', id).single(),
+        supabase.from('showing_price_tiers').select('*').eq('showing_id', id).order('display_order'),
+      ]).then(([showingRes, tiersRes]) => {
+        const data = showingRes.data;
         if (data) {
           if (data.movie_id) { setCategory('movie'); setItemId(data.movie_id); }
           else if (data.event_id) { setCategory('event'); setItemId(data.event_id); }
@@ -60,6 +79,20 @@ export default function ShowingForm() {
           setStartTime(local);
           setTicketPrice(String(data.ticket_price));
         }
+
+        const tierData = tiersRes.data || [];
+        if (tierData.length > 0) {
+          setUseTiers(true);
+          setTiers(tierData.map((t: any) => ({
+            id: t.id,
+            tier_name: t.tier_name,
+            price: String(t.price),
+            display_order: t.display_order,
+          })));
+        } else {
+          setUseTiers(false);
+          setTiers([...DEFAULT_TIERS]);
+        }
       });
     }
   }, [id, isEdit, isAdmin, authLoading, navigate]);
@@ -67,6 +100,18 @@ export default function ShowingForm() {
   const currentItems = category === 'movie' ? movies
     : category === 'event' ? events
     : concerts;
+
+  const addTier = () => {
+    setTiers(prev => [...prev, { tier_name: '', price: '8.00', display_order: prev.length }]);
+  };
+
+  const removeTier = (index: number) => {
+    setTiers(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const updateTier = (index: number, field: 'tier_name' | 'price', value: string) => {
+    setTiers(prev => prev.map((t, i) => i === index ? { ...t, [field]: value } : t));
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -82,12 +127,41 @@ export default function ShowingForm() {
       ticket_price: parseFloat(ticketPrice),
     };
 
-    const { error } = isEdit
-      ? await supabase.from('showings').update(showingData).eq('id', id)
-      : await supabase.from('showings').insert(showingData);
+    let showingId = id;
 
-    if (error) toast.error(error.message);
-    else { toast.success(isEdit ? 'Showing updated!' : 'Showing created!'); navigate('/admin'); }
+    if (isEdit) {
+      const { error } = await supabase.from('showings').update(showingData).eq('id', id);
+      if (error) { toast.error(error.message); setSaving(false); return; }
+    } else {
+      const { data, error } = await supabase.from('showings').insert(showingData).select('id').single();
+      if (error) { toast.error(error.message); setSaving(false); return; }
+      showingId = data.id;
+    }
+
+    // Save price tiers
+    if (useTiers && showingId) {
+      // Delete existing tiers for this showing
+      await supabase.from('showing_price_tiers').delete().eq('showing_id', showingId);
+
+      const validTiers = tiers.filter(t => t.tier_name.trim());
+      if (validTiers.length > 0) {
+        const { error: tierError } = await supabase.from('showing_price_tiers').insert(
+          validTiers.map((t, i) => ({
+            showing_id: showingId!,
+            tier_name: t.tier_name.trim(),
+            price: parseFloat(t.price),
+            display_order: i,
+          }))
+        );
+        if (tierError) { toast.error('Showing saved but tiers failed: ' + tierError.message); setSaving(false); return; }
+      }
+    } else if (isEdit && showingId) {
+      // Remove tiers if user unchecked
+      await supabase.from('showing_price_tiers').delete().eq('showing_id', showingId);
+    }
+
+    toast.success(isEdit ? 'Showing updated!' : 'Showing created!');
+    navigate('/admin');
     setSaving(false);
   };
 
@@ -105,9 +179,7 @@ export default function ShowingForm() {
             <div className="space-y-2">
               <Label>Category *</Label>
               <Select value={category} onValueChange={(v) => { setCategory(v as Category); setItemId(''); }}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
+                <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="movie">Movie</SelectItem>
                   <SelectItem value="event">Event</SelectItem>
@@ -118,9 +190,7 @@ export default function ShowingForm() {
             <div className="space-y-2">
               <Label>{category === 'movie' ? 'Movie' : category === 'event' ? 'Event' : 'Concert'} *</Label>
               <Select value={itemId} onValueChange={setItemId}>
-                <SelectTrigger>
-                  <SelectValue placeholder={`Select a ${category}`} />
-                </SelectTrigger>
+                <SelectTrigger><SelectValue placeholder={`Select a ${category}`} /></SelectTrigger>
                 <SelectContent>
                   {currentItems.map((item: any) => (
                     <SelectItem key={item.id} value={item.id}>
@@ -133,9 +203,7 @@ export default function ShowingForm() {
             <div className="space-y-2">
               <Label>Venue</Label>
               <Select value={venueId} onValueChange={setVenueId}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select a venue (optional)" />
-                </SelectTrigger>
+                <SelectTrigger><SelectValue placeholder="Select a venue (optional)" /></SelectTrigger>
                 <SelectContent>
                   {venues.map((v: any) => (
                     <SelectItem key={v.id} value={v.id}>
@@ -150,9 +218,57 @@ export default function ShowingForm() {
               <Input type="datetime-local" required value={startTime} onChange={e => setStartTime(e.target.value)} />
             </div>
             <div className="space-y-2">
-              <Label>Ticket Price ($)</Label>
+              <Label>Base Ticket Price ($)</Label>
               <Input type="number" step="0.01" value={ticketPrice} onChange={e => setTicketPrice(e.target.value)} />
+              <p className="text-xs text-muted-foreground">Fallback price when no tiers are used</p>
             </div>
+
+            {/* Price Tiers */}
+            <div className="space-y-3 border-t border-border pt-4">
+              <div className="flex items-center justify-between">
+                <Label className="text-base font-semibold">Price Tiers</Label>
+                <label className="flex items-center gap-2 text-sm cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={useTiers}
+                    onChange={e => setUseTiers(e.target.checked)}
+                    className="rounded"
+                  />
+                  Enable tiered pricing
+                </label>
+              </div>
+              {useTiers && (
+                <div className="space-y-2">
+                  {tiers.map((tier, i) => (
+                    <div key={i} className="flex items-center gap-2">
+                      <Input
+                        placeholder="Tier name (e.g. Adult)"
+                        value={tier.tier_name}
+                        onChange={e => updateTier(i, 'tier_name', e.target.value)}
+                        className="flex-1"
+                      />
+                      <div className="relative w-24">
+                        <span className="absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">$</span>
+                        <Input
+                          type="number"
+                          step="0.01"
+                          value={tier.price}
+                          onChange={e => updateTier(i, 'price', e.target.value)}
+                          className="pl-6"
+                        />
+                      </div>
+                      <Button type="button" variant="ghost" size="icon" onClick={() => removeTier(i)} className="shrink-0">
+                        <Trash2 className="h-4 w-4 text-destructive" />
+                      </Button>
+                    </div>
+                  ))}
+                  <Button type="button" variant="outline" size="sm" onClick={addTier} className="w-full">
+                    <Plus className="h-4 w-4 mr-1" /> Add Tier
+                  </Button>
+                </div>
+              )}
+            </div>
+
             <Button type="submit" className="w-full" disabled={saving}>
               {saving ? 'Saving...' : isEdit ? 'Update Showing' : 'Create Showing'}
             </Button>
