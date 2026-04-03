@@ -38,6 +38,7 @@ export default function ConcertForm() {
           setGenre(data.genre || '');
           setRating(data.rating || '');
           setIsActive(data.is_active);
+          setTrailerUrl(data.trailer_url || '');
         }
       });
     }
