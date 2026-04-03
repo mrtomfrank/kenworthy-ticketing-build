@@ -497,17 +497,58 @@ export default function Showing() {
                       <span className="text-primary">${total.toFixed(2)}</span>
                     </div>
                   </div>
+
+                  {/* Film Pass option */}
+                  {user && userPasses.length > 0 && (
+                    <div className="border-t border-border pt-3 space-y-3">
+                      <div className="flex items-center justify-between">
+                        <Label className="flex items-center gap-2 cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={useFilmPass}
+                            onChange={e => setUseFilmPass(e.target.checked)}
+                            className="rounded"
+                          />
+                          <CreditCard className="h-4 w-4 text-primary" />
+                          Use Film Pass
+                        </Label>
+                      </div>
+                      {useFilmPass && (
+                        <Select value={selectedPassId} onValueChange={setSelectedPassId}>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select a pass..." />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {userPasses.map((p: any) => (
+                              <SelectItem key={p.id} value={p.id}>
+                                {p.pass_type_name} — ${Number(p.remaining_balance).toFixed(2)} left
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      )}
+                      {useFilmPass && selectedPass && !passCoversTotal && (
+                        <p className="text-xs text-destructive">
+                          Insufficient balance: ${Number(selectedPass.remaining_balance).toFixed(2)} available, ${subtotal.toFixed(2)} needed
+                        </p>
+                      )}
+                    </div>
+                  )}
+
                   <Button
                     className="w-full"
                     size="lg"
                     onClick={handlePurchase}
-                    disabled={purchasing}
+                    disabled={purchasing || (useFilmPass && !passCoversTotal)}
                   >
-                    <Check className="h-4 w-4 mr-1" />
-                    {purchasing ? 'Processing...' : `Purchase ${ticketCount} Ticket(s)`}
+                    {useFilmPass ? (
+                      <><CreditCard className="h-4 w-4 mr-1" /> {purchasing ? 'Redeeming...' : `Redeem Film Pass`}</>
+                    ) : (
+                      <><Check className="h-4 w-4 mr-1" /> {purchasing ? 'Processing...' : `Purchase ${ticketCount} Ticket(s)`}</>
+                    )}
                   </Button>
                   <p className="text-xs text-muted-foreground text-center">
-                    Simulated checkout — no real charge
+                    {useFilmPass ? 'Pass balance will be deducted' : 'Simulated checkout — no real charge'}
                   </p>
                 </>
               )}
