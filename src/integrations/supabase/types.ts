@@ -208,6 +208,78 @@ export type Database = {
         }
         Relationships: []
       }
+      film_pass_redemptions: {
+        Row: {
+          amount_deducted: number
+          id: string
+          pass_id: string
+          redeemed_at: string
+          ticket_id: string
+        }
+        Insert: {
+          amount_deducted: number
+          id?: string
+          pass_id: string
+          redeemed_at?: string
+          ticket_id: string
+        }
+        Update: {
+          amount_deducted?: number
+          id?: string
+          pass_id?: string
+          redeemed_at?: string
+          ticket_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "film_pass_redemptions_pass_id_fkey"
+            columns: ["pass_id"]
+            isOneToOne: false
+            referencedRelation: "user_film_passes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "film_pass_redemptions_ticket_id_fkey"
+            columns: ["ticket_id"]
+            isOneToOne: false
+            referencedRelation: "tickets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      film_pass_types: {
+        Row: {
+          created_at: string
+          expiration_days: number | null
+          id: string
+          initial_balance: number
+          is_active: boolean
+          name: string
+          price: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          expiration_days?: number | null
+          id?: string
+          initial_balance?: number
+          is_active?: boolean
+          name: string
+          price?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          expiration_days?: number | null
+          id?: string
+          initial_balance?: number
+          is_active?: boolean
+          name?: string
+          price?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       movies: {
         Row: {
           created_at: string
@@ -484,6 +556,54 @@ export type Database = {
           },
         ]
       }
+      user_film_passes: {
+        Row: {
+          created_at: string
+          expires_at: string | null
+          id: string
+          pass_type_id: string
+          payment_method: string
+          purchased_at: string
+          remaining_balance: number
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          expires_at?: string | null
+          id?: string
+          pass_type_id: string
+          payment_method?: string
+          purchased_at?: string
+          remaining_balance: number
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          expires_at?: string | null
+          id?: string
+          pass_type_id?: string
+          payment_method?: string
+          purchased_at?: string
+          remaining_balance?: number
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_film_passes_pass_type_id_fkey"
+            columns: ["pass_type_id"]
+            isOneToOne: false
+            referencedRelation: "film_pass_types"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_film_passes_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_roles: {
         Row: {
           id: string
@@ -577,6 +697,10 @@ export type Database = {
           _role: Database["public"]["Enums"]["app_role"]
           _user_id: string
         }
+        Returns: boolean
+      }
+      redeem_film_pass: {
+        Args: { p_amount: number; p_pass_id: string; p_ticket_id: string }
         Returns: boolean
       }
     }
