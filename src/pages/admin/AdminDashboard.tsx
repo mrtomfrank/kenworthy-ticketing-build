@@ -6,12 +6,13 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Film, Plus, Calendar, Ticket, Edit, Trash2, ShoppingCart, ScanLine, Music, PartyPopper, MapPin, BarChart3, UtensilsCrossed, CreditCard } from 'lucide-react';
+import { Film, Plus, Calendar, Ticket, Edit, Trash2, ShoppingCart, ScanLine, Music, PartyPopper, MapPin, BarChart3, UtensilsCrossed, CreditCard, Download } from 'lucide-react';
 import AnalyticsTab from '@/components/admin/AnalyticsTab';
 import ConcessionItemsTab from '@/components/admin/ConcessionItemsTab';
 import FilmPassesTab from '@/components/admin/FilmPassesTab';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
+import { exportContactsCsv } from '@/lib/exportContacts';
 
 export default function AdminDashboard() {
   const { isAdmin, loading: authLoading } = useAuth();
@@ -60,7 +61,7 @@ export default function AdminDashboard() {
   const getShowingCategory = (s: any) => {
     if (s.movie_id) return 'Movie';
     if (s.event_id) return 'Event';
-    if (s.concert_id) return 'Concert';
+    if (s.concert_id) return 'Live Performance';
     return '';
   };
 
@@ -105,7 +106,7 @@ export default function AdminDashboard() {
             <Music className="h-6 w-6 text-primary" />
             <div>
               <p className="text-xl font-bold">{concerts.length}</p>
-              <p className="text-xs text-muted-foreground">Concerts</p>
+              <p className="text-xs text-muted-foreground">Live Performances</p>
             </div>
           </CardContent>
         </Card>
@@ -133,7 +134,7 @@ export default function AdminDashboard() {
         <TabsList className="grid w-full grid-cols-8">
           <TabsTrigger value="movies">Movies</TabsTrigger>
           <TabsTrigger value="events">Events</TabsTrigger>
-          <TabsTrigger value="concerts">Concerts</TabsTrigger>
+          <TabsTrigger value="concerts">Live Performances</TabsTrigger>
           <TabsTrigger value="venues">Venues</TabsTrigger>
           <TabsTrigger value="showings">Showings</TabsTrigger>
           <TabsTrigger value="concessions"><UtensilsCrossed className="h-4 w-4 mr-1 inline" />Concessions</TabsTrigger>
@@ -206,6 +207,13 @@ export default function AdminDashboard() {
                     </div>
                   </div>
                   <div className="flex gap-1">
+                    <Button variant="ghost" size="sm" title="Export contacts" onClick={async () => {
+                      const count = await exportContactsCsv('event', event.id, event.title);
+                      if (count === null) toast.info('No attendees found');
+                      else toast.success(`Exported ${count} contacts`);
+                    }}>
+                      <Download className="h-4 w-4" />
+                    </Button>
                     <Button variant="ghost" size="sm" asChild>
                       <Link to={`/admin/events/${event.id}`}><Edit className="h-4 w-4" /></Link>
                     </Button>
@@ -223,9 +231,9 @@ export default function AdminDashboard() {
         {/* Concerts Tab */}
         <TabsContent value="concerts">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="font-display text-xl font-bold">Concerts</h2>
+            <h2 className="font-display text-xl font-bold">Live Performances</h2>
             <Button size="sm" asChild>
-              <Link to="/admin/concerts/new"><Plus className="h-4 w-4 mr-1" /> Add Concert</Link>
+              <Link to="/admin/concerts/new"><Plus className="h-4 w-4 mr-1" /> Add Performance</Link>
             </Button>
           </div>
           <div className="space-y-3">
@@ -245,17 +253,24 @@ export default function AdminDashboard() {
                     </div>
                   </div>
                   <div className="flex gap-1">
+                    <Button variant="ghost" size="sm" title="Export contacts" onClick={async () => {
+                      const count = await exportContactsCsv('concert', concert.id, concert.title);
+                      if (count === null) toast.info('No attendees found');
+                      else toast.success(`Exported ${count} contacts`);
+                    }}>
+                      <Download className="h-4 w-4" />
+                    </Button>
                     <Button variant="ghost" size="sm" asChild>
                       <Link to={`/admin/concerts/${concert.id}`}><Edit className="h-4 w-4" /></Link>
                     </Button>
-                    <Button variant="ghost" size="sm" onClick={() => deleteItem('concerts', concert.id, 'Concert')}>
+                    <Button variant="ghost" size="sm" onClick={() => deleteItem('concerts', concert.id, 'Live Performance')}>
                       <Trash2 className="h-4 w-4 text-destructive" />
                     </Button>
                   </div>
                 </CardContent>
               </Card>
             ))}
-            {concerts.length === 0 && <p className="text-muted-foreground text-center py-8">No concerts yet.</p>}
+            {concerts.length === 0 && <p className="text-muted-foreground text-center py-8">No live performances yet.</p>}
           </div>
         </TabsContent>
 

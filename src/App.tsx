@@ -20,6 +20,7 @@ import ShowingForm from "./pages/admin/ShowingForm";
 import StaffPOS from "./pages/admin/StaffPOS";
 import TicketScanner from "./pages/admin/TicketScanner";
 import ResetPassword from "./pages/ResetPassword";
+import HostDashboard from "./pages/admin/HostDashboard";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -53,6 +54,7 @@ const App = () => (
               <Route path="/admin/showings/:id" element={<ShowingForm />} />
               <Route path="/admin/pos" element={<StaffPOS />} />
               <Route path="/admin/scanner" element={<TicketScanner />} />
+              <Route path="/host" element={<HostDashboard />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </Layout>
