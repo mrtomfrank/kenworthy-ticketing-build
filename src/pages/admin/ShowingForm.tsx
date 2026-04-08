@@ -183,12 +183,12 @@ export default function ShowingForm() {
                 <SelectContent>
                   <SelectItem value="movie">Movie</SelectItem>
                   <SelectItem value="event">Event</SelectItem>
-                  <SelectItem value="concert">Concert</SelectItem>
+                  <SelectItem value="concert">Live Performance</SelectItem>
                 </SelectContent>
               </Select>
             </div>
             <div className="space-y-2">
-              <Label>{category === 'movie' ? 'Movie' : category === 'event' ? 'Event' : 'Concert'} *</Label>
+              <Label>{category === 'movie' ? 'Movie' : category === 'event' ? 'Event' : 'Live Performance'} *</Label>
               <Select value={itemId} onValueChange={setItemId}>
                 <SelectTrigger><SelectValue placeholder={`Select a ${category}`} /></SelectTrigger>
                 <SelectContent>

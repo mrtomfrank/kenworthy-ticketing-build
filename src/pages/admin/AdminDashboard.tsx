@@ -60,7 +60,7 @@ export default function AdminDashboard() {
   const getShowingCategory = (s: any) => {
     if (s.movie_id) return 'Movie';
     if (s.event_id) return 'Event';
-    if (s.concert_id) return 'Concert';
+    if (s.concert_id) return 'Live Performance';
     return '';
   };
 
@@ -105,7 +105,7 @@ export default function AdminDashboard() {
             <Music className="h-6 w-6 text-primary" />
             <div>
               <p className="text-xl font-bold">{concerts.length}</p>
-              <p className="text-xs text-muted-foreground">Concerts</p>
+              <p className="text-xs text-muted-foreground">Live Performances</p>
             </div>
           </CardContent>
         </Card>
@@ -133,7 +133,7 @@ export default function AdminDashboard() {
         <TabsList className="grid w-full grid-cols-8">
           <TabsTrigger value="movies">Movies</TabsTrigger>
           <TabsTrigger value="events">Events</TabsTrigger>
-          <TabsTrigger value="concerts">Concerts</TabsTrigger>
+          <TabsTrigger value="concerts">Live Performances</TabsTrigger>
           <TabsTrigger value="venues">Venues</TabsTrigger>
           <TabsTrigger value="showings">Showings</TabsTrigger>
           <TabsTrigger value="concessions"><UtensilsCrossed className="h-4 w-4 mr-1 inline" />Concessions</TabsTrigger>
@@ -248,14 +248,14 @@ export default function AdminDashboard() {
                     <Button variant="ghost" size="sm" asChild>
                       <Link to={`/admin/concerts/${concert.id}`}><Edit className="h-4 w-4" /></Link>
                     </Button>
-                    <Button variant="ghost" size="sm" onClick={() => deleteItem('concerts', concert.id, 'Concert')}>
+                    <Button variant="ghost" size="sm" onClick={() => deleteItem('concerts', concert.id, 'Live Performance')}>
                       <Trash2 className="h-4 w-4 text-destructive" />
                     </Button>
                   </div>
                 </CardContent>
               </Card>
             ))}
-            {concerts.length === 0 && <p className="text-muted-foreground text-center py-8">No concerts yet.</p>}
+            {concerts.length === 0 && <p className="text-muted-foreground text-center py-8">No live performances yet.</p>}
           </div>
         </TabsContent>
 

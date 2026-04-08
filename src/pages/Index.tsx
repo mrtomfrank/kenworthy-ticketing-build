@@ -248,11 +248,11 @@ export default function Index() {
         </section>
       )}
 
-      {/* Concerts */}
+      {/* Live Performances */}
       {concerts.length > 0 && (
         <section className="container py-16 px-4">
           <h2 className="font-display text-3xl font-bold mb-8 flex items-center gap-2">
-            <Music className="h-7 w-7 text-primary" /> Concerts
+            <Music className="h-7 w-7 text-primary" /> Live Performances
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {concerts.map((concert, i) => (

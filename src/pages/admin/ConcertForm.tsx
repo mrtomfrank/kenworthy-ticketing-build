@@ -73,7 +73,7 @@ export default function ConcertForm() {
       <Button variant="ghost" size="sm" onClick={() => navigate('/admin')} className="mb-4">← Back</Button>
       <Card className="glass">
         <CardHeader>
-          <CardTitle className="font-display">{isEdit ? 'Edit Concert' : 'Add Concert'}</CardTitle>
+          <CardTitle className="font-display">{isEdit ? 'Edit Live Performance' : 'Add Live Performance'}</CardTitle>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
@@ -105,7 +105,7 @@ export default function ConcertForm() {
               <Label>Active (visible to public)</Label>
             </div>
             <Button type="submit" className="w-full" disabled={saving}>
-              {saving ? 'Saving...' : isEdit ? 'Update Concert' : 'Create Concert'}
+              {saving ? 'Saving...' : isEdit ? 'Update Performance' : 'Create Performance'}
             </Button>
           </form>
         </CardContent>
