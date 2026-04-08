@@ -2,7 +2,7 @@ import { supabase } from '@/integrations/supabase/client';
 
 export async function exportContactsCsv(productionType: 'event' | 'concert' | 'movie', productionId: string, productionTitle: string) {
   // Get all showings for this production
-  const col = productionType === 'event' ? 'event_id' : productionType === 'concert' ? 'concert_id' : 'movie_id';
+  const col = productionType === 'event' ? 'event_id' : productionType === 'concert' ? 'live_performance_id' : 'movie_id';
   const { data: showings } = await supabase
     .from('showings')
     .select('id')

@@ -84,9 +84,9 @@ export default function Showing() {
       if (s.event_id) {
         type = 'event';
         productionPromise = supabase.from('events').select('*').eq('id', s.event_id).single();
-      } else if (s.concert_id) {
+      } else if (s.live_performance_id) {
         type = 'concert';
-        productionPromise = supabase.from('concerts').select('*').eq('id', s.concert_id).single();
+        productionPromise = supabase.from('live_performances').select('*').eq('id', s.live_performance_id).single();
       } else {
         productionPromise = supabase.from('movies').select('*').eq('id', s.movie_id).single();
       }

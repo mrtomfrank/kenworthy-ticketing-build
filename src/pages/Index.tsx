@@ -65,7 +65,7 @@ export default function Index() {
       const [moviesRes, eventsRes, concertsRes, showingsRes] = await Promise.all([
         supabase.from('movies').select('*').eq('is_active', true).order('title'),
         supabase.from('events').select('*').eq('is_active', true).order('title'),
-        supabase.from('concerts').select('*').eq('is_active', true).order('title'),
+        supabase.from('live_performances').select('*').eq('is_active', true).order('title'),
         supabase.from('showings').select('*').eq('is_active', true).gte('start_time', now).order('start_time'),
       ]);
 
@@ -83,7 +83,7 @@ export default function Index() {
 
       setConcerts((concertsRes.data || []).map(c => ({
         ...c,
-        showings: showings.filter(s => s.concert_id === c.id),
+        showings: showings.filter(s => s.live_performance_id === c.id),
       })));
 
       setLoading(false);
