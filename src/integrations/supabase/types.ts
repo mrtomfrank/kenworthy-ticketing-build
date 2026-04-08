@@ -286,6 +286,55 @@ export type Database = {
         }
         Relationships: []
       }
+      host_event_assignments: {
+        Row: {
+          concert_id: string | null
+          created_at: string
+          event_id: string | null
+          id: string
+          movie_id: string | null
+          user_id: string
+        }
+        Insert: {
+          concert_id?: string | null
+          created_at?: string
+          event_id?: string | null
+          id?: string
+          movie_id?: string | null
+          user_id: string
+        }
+        Update: {
+          concert_id?: string | null
+          created_at?: string
+          event_id?: string | null
+          id?: string
+          movie_id?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "host_event_assignments_concert_id_fkey"
+            columns: ["concert_id"]
+            isOneToOne: false
+            referencedRelation: "concerts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "host_event_assignments_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "host_event_assignments_movie_id_fkey"
+            columns: ["movie_id"]
+            isOneToOne: false
+            referencedRelation: "movies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       movies: {
         Row: {
           created_at: string
@@ -714,7 +763,7 @@ export type Database = {
       }
     }
     Enums: {
-      app_role: "admin" | "regular_user" | "staff"
+      app_role: "admin" | "regular_user" | "staff" | "host"
       event_ticket_type: "ticketed" | "rsvp" | "info_only"
     }
     CompositeTypes: {
@@ -843,7 +892,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      app_role: ["admin", "regular_user", "staff"],
+      app_role: ["admin", "regular_user", "staff", "host"],
       event_ticket_type: ["ticketed", "rsvp", "info_only"],
     },
   },
