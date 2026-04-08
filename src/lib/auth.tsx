@@ -7,6 +7,7 @@ interface AuthContextType {
   session: Session | null;
   isAdmin: boolean;
   isStaff: boolean;
+  isHost: boolean;
   loading: boolean;
   signUp: (email: string, password: string, displayName: string) => Promise<void>;
   signIn: (email: string, password: string) => Promise<void>;
@@ -20,6 +21,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
   const [isStaff, setIsStaff] = useState(false);
+  const [isHost, setIsHost] = useState(false);
   const [loading, setLoading] = useState(true);
 
   const checkRoles = async (userId: string) => {
@@ -30,6 +32,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const roles = (data || []).map(r => r.role);
     setIsAdmin(roles.includes('admin'));
     setIsStaff(roles.includes('staff') || roles.includes('admin'));
+    setIsHost(roles.includes('host'));
   };
 
   useEffect(() => {
@@ -48,6 +51,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       } else {
         setIsAdmin(false);
         setIsStaff(false);
+        setIsHost(false);
       }
       setLoading(false);
     });
@@ -75,7 +79,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, session, isAdmin, isStaff, loading, signUp, signIn, signOut }}>
+    <AuthContext.Provider value={{ user, session, isAdmin, isStaff, isHost, loading, signUp, signIn, signOut }}>
       {children}
     </AuthContext.Provider>
   );
