@@ -62,7 +62,7 @@ export default function ConcertForm() {
       : await supabase.from('concerts').insert(concertData);
 
     if (error) toast.error(error.message);
-    else { toast.success(isEdit ? 'Concert updated!' : 'Concert created!'); navigate('/admin'); }
+    else { toast.success(isEdit ? 'Performance updated!' : 'Performance created!'); navigate('/admin'); }
     setSaving(false);
   };
 

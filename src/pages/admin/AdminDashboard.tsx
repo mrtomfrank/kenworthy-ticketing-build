@@ -223,9 +223,9 @@ export default function AdminDashboard() {
         {/* Concerts Tab */}
         <TabsContent value="concerts">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="font-display text-xl font-bold">Concerts</h2>
+            <h2 className="font-display text-xl font-bold">Live Performances</h2>
             <Button size="sm" asChild>
-              <Link to="/admin/concerts/new"><Plus className="h-4 w-4 mr-1" /> Add Concert</Link>
+              <Link to="/admin/concerts/new"><Plus className="h-4 w-4 mr-1" /> Add Performance</Link>
             </Button>
           </div>
           <div className="space-y-3">
