@@ -1,10 +1,10 @@
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/lib/auth';
 import { Button } from '@/components/ui/button';
-import { Film, Ticket, LogOut, Shield, User, CreditCard } from 'lucide-react';
+import { Film, Ticket, LogOut, Shield, User, CreditCard, Home } from 'lucide-react';
 
 export function Layout({ children }: { children: React.ReactNode }) {
-  const { user, isAdmin, signOut } = useAuth();
+  const { user, isAdmin, isHost, signOut } = useAuth();
   const navigate = useNavigate();
 
   const handleSignOut = async () => {
@@ -45,6 +45,13 @@ export function Layout({ children }: { children: React.ReactNode }) {
                   <Button variant="ghost" size="sm" asChild>
                     <Link to="/admin">
                       <Shield className="h-4 w-4 mr-1" /> Admin
+                    </Link>
+                  </Button>
+                )}
+                {isHost && !isAdmin && (
+                  <Button variant="ghost" size="sm" asChild>
+                    <Link to="/host">
+                      <Home className="h-4 w-4 mr-1" /> Host
                     </Link>
                   </Button>
                 )}
