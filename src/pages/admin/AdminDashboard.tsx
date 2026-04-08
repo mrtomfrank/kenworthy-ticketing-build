@@ -253,6 +253,13 @@ export default function AdminDashboard() {
                     </div>
                   </div>
                   <div className="flex gap-1">
+                    <Button variant="ghost" size="sm" title="Export contacts" onClick={async () => {
+                      const count = await exportContactsCsv('concert', concert.id, concert.title);
+                      if (count === null) toast.info('No attendees found');
+                      else toast.success(`Exported ${count} contacts`);
+                    }}>
+                      <Download className="h-4 w-4" />
+                    </Button>
                     <Button variant="ghost" size="sm" asChild>
                       <Link to={`/admin/concerts/${concert.id}`}><Edit className="h-4 w-4" /></Link>
                     </Button>
