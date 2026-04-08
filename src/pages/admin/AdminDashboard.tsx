@@ -6,12 +6,13 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Film, Plus, Calendar, Ticket, Edit, Trash2, ShoppingCart, ScanLine, Music, PartyPopper, MapPin, BarChart3, UtensilsCrossed, CreditCard } from 'lucide-react';
+import { Film, Plus, Calendar, Ticket, Edit, Trash2, ShoppingCart, ScanLine, Music, PartyPopper, MapPin, BarChart3, UtensilsCrossed, CreditCard, Download } from 'lucide-react';
 import AnalyticsTab from '@/components/admin/AnalyticsTab';
 import ConcessionItemsTab from '@/components/admin/ConcessionItemsTab';
 import FilmPassesTab from '@/components/admin/FilmPassesTab';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
+import { exportContactsCsv } from '@/lib/exportContacts';
 
 export default function AdminDashboard() {
   const { isAdmin, loading: authLoading } = useAuth();
