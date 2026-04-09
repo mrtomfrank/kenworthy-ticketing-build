@@ -6,7 +6,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Film, Plus, Calendar, Ticket, Edit, Trash2, ShoppingCart, ScanLine, Music, PartyPopper, MapPin, BarChart3, UtensilsCrossed, CreditCard, Download, Users } from 'lucide-react';
+import { Film, Plus, Calendar, Ticket, Edit, Trash2, ShoppingCart, ScanLine, Music, PartyPopper, BarChart3, UtensilsCrossed, CreditCard, Download, Users } from 'lucide-react';
 import AnalyticsTab from '@/components/admin/AnalyticsTab';
 import ConcessionItemsTab from '@/components/admin/ConcessionItemsTab';
 import FilmPassesTab from '@/components/admin/FilmPassesTab';
@@ -21,7 +21,6 @@ export default function AdminDashboard() {
   const [movies, setMovies] = useState<any[]>([]);
   const [events, setEvents] = useState<any[]>([]);
   const [concerts, setConcerts] = useState<any[]>([]);
-  const [venues, setVenues] = useState<any[]>([]);
   const [showings, setShowings] = useState<any[]>([]);
   const [ticketCount, setTicketCount] = useState(0);
 
@@ -32,23 +31,23 @@ export default function AdminDashboard() {
   }, [isAdmin, authLoading, navigate]);
 
   async function loadData() {
-    const [moviesRes, eventsRes, concertsRes, venuesRes, showingsRes, ticketsRes] = await Promise.all([
+    const [moviesRes, eventsRes, concertsRes, showingsRes, ticketsRes] = await Promise.all([
       supabase.from('movies').select('*').order('created_at', { ascending: false }),
       supabase.from('events').select('*').order('created_at', { ascending: false }),
       supabase.from('live_performances').select('*').order('created_at', { ascending: false }),
-      supabase.from('venues').select('*').order('name'),
       supabase.from('showings').select('*, movies(title), events(title), live_performances(title), venues(name)').order('start_time', { ascending: false }),
       supabase.from('tickets').select('id', { count: 'exact' }),
     ]);
     setMovies(moviesRes.data || []);
     setEvents(eventsRes.data || []);
     setConcerts(concertsRes.data || []);
-    setVenues(venuesRes.data || []);
     setShowings(showingsRes.data || []);
     setTicketCount(ticketsRes.count || 0);
   }
 
-  const deleteItem = async (table: 'movies' | 'events' | 'live_performances' | 'venues' | 'showings', id: string, label: string) => {
+  const getMovieShowings = (movieId: string) => showings.filter(s => s.movie_id === movieId);
+
+  const deleteItem = async (table: 'movies' | 'events' | 'live_performances' | 'showings', id: string, label: string) => {
     if (!confirm(`Delete this ${label}?`)) return;
     const { error } = await supabase.from(table).delete().eq('id', id);
     if (error) toast.error(error.message);
