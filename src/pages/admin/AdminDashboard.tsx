@@ -82,7 +82,7 @@ export default function AdminDashboard() {
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-8">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
         <Card className="glass">
           <CardContent className="p-4 flex items-center gap-3">
             <Film className="h-6 w-6 text-primary" />
@@ -112,16 +112,7 @@ export default function AdminDashboard() {
         </Card>
         <Card className="glass">
           <CardContent className="p-4 flex items-center gap-3">
-            <Calendar className="h-6 w-6 text-accent" />
-            <div>
-              <p className="text-xl font-bold">{showings.length}</p>
-              <p className="text-xs text-muted-foreground">Showings</p>
-            </div>
-          </CardContent>
-        </Card>
-        <Card className="glass">
-          <CardContent className="p-4 flex items-center gap-3">
-            <Ticket className="h-6 w-6 text-success" />
+            <Ticket className="h-6 w-6 text-primary" />
             <div>
               <p className="text-xl font-bold">{ticketCount}</p>
               <p className="text-xs text-muted-foreground">Tickets Sold</p>
@@ -131,12 +122,10 @@ export default function AdminDashboard() {
       </div>
 
       <Tabs defaultValue="movies" className="space-y-4">
-        <TabsList className="grid w-full grid-cols-9">
+        <TabsList className="grid w-full grid-cols-7">
           <TabsTrigger value="movies">Movies</TabsTrigger>
           <TabsTrigger value="events">Events</TabsTrigger>
           <TabsTrigger value="concerts">Live Performances</TabsTrigger>
-          <TabsTrigger value="venues">Venues</TabsTrigger>
-          <TabsTrigger value="showings">Showings</TabsTrigger>
           <TabsTrigger value="concessions"><UtensilsCrossed className="h-4 w-4 mr-1 inline" />Concessions</TabsTrigger>
           <TabsTrigger value="passes"><CreditCard className="h-4 w-4 mr-1 inline" />Passes</TabsTrigger>
           <TabsTrigger value="hosts"><Users className="h-4 w-4 mr-1 inline" />Hosts</TabsTrigger>
