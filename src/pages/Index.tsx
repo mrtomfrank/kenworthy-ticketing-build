@@ -272,6 +272,13 @@ export default function Index() {
                     {concert.rating && <Badge>{concert.rating}</Badge>}
                     {concert.genre && <Badge variant="secondary">{concert.genre}</Badge>}
                   </div>
+                  {(concert as any).subcategory && (
+                    <div className="absolute top-3 left-3">
+                      <Badge variant="outline" className="bg-background/80 backdrop-blur-sm capitalize">
+                        {(concert as any).subcategory.replace(/_/g, ' ')}
+                      </Badge>
+                    </div>
+                  )}
                 </div>
                 <CardContent className="p-5">
                   <h3 className="font-display text-xl font-bold mb-2">{concert.title}</h3>

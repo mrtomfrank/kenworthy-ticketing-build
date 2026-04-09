@@ -245,6 +245,11 @@ export default function AdminDashboard() {
                     <div>
                       <p className="font-medium">{concert.title}</p>
                       <div className="flex gap-2 mt-1">
+                        {concert.subcategory && (
+                          <Badge variant="outline" className="text-xs capitalize">
+                            {concert.subcategory.replace(/_/g, ' ')}
+                          </Badge>
+                        )}
                         {concert.genre && <Badge variant="outline" className="text-xs">{concert.genre}</Badge>}
                         <Badge variant={concert.is_active ? 'default' : 'secondary'} className="text-xs">
                           {concert.is_active ? 'Active' : 'Inactive'}
