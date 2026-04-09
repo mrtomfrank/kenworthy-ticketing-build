@@ -36,7 +36,7 @@ export default function AdminDashboard() {
       supabase.from('events').select('*').order('created_at', { ascending: false }),
       supabase.from('live_performances').select('*').order('created_at', { ascending: false }),
       supabase.from('venues').select('*').order('name'),
-      supabase.from('showings').select('*, movies(title), events(title), concerts(title), venues(name)').order('start_time', { ascending: false }),
+      supabase.from('showings').select('*, movies(title), events(title), live_performances(title), venues(name)').order('start_time', { ascending: false }),
       supabase.from('tickets').select('id', { count: 'exact' }),
     ]);
     setMovies(moviesRes.data || []);
@@ -55,7 +55,7 @@ export default function AdminDashboard() {
   };
 
   const getShowingTitle = (s: any) => {
-    return s.movies?.title || s.events?.title || s.concerts?.title || 'Unknown';
+    return s.movies?.title || s.events?.title || s.live_performances?.title || 'Unknown';
   };
 
   const getShowingCategory = (s: any) => {
