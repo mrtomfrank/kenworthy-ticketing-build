@@ -136,38 +136,75 @@ export default function AdminDashboard() {
         <TabsContent value="movies">
           <div className="flex items-center justify-between mb-4">
             <h2 className="font-display text-xl font-bold">Movies</h2>
-            <Button size="sm" asChild>
-              <Link to="/admin/movies/new"><Plus className="h-4 w-4 mr-1" /> Add Movie</Link>
-            </Button>
+            <div className="flex gap-2">
+              <Button size="sm" variant="outline" asChild>
+                <Link to="/admin/showings/new"><Plus className="h-4 w-4 mr-1" /> Add Showing</Link>
+              </Button>
+              <Button size="sm" asChild>
+                <Link to="/admin/movies/new"><Plus className="h-4 w-4 mr-1" /> Add Movie</Link>
+              </Button>
+            </div>
           </div>
-          <div className="space-y-3">
-            {movies.map(movie => (
-              <Card key={movie.id} className="glass">
-                <CardContent className="p-4 flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <Film className="h-5 w-5 text-primary" />
-                    <div>
-                      <p className="font-medium">{movie.title}</p>
-                      <div className="flex gap-2 mt-1">
-                        {movie.rating && <Badge variant="secondary" className="text-xs">{movie.rating}</Badge>}
-                        {movie.genre && <Badge variant="outline" className="text-xs">{movie.genre}</Badge>}
-                        <Badge variant={movie.is_active ? 'default' : 'secondary'} className="text-xs">
-                          {movie.is_active ? 'Active' : 'Inactive'}
-                        </Badge>
+          <div className="space-y-4">
+            {movies.map(movie => {
+              const movieShowings = getMovieShowings(movie.id);
+              return (
+                <Card key={movie.id} className="glass">
+                  <CardContent className="p-4">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <Film className="h-5 w-5 text-primary" />
+                        <div>
+                          <p className="font-medium">{movie.title}</p>
+                          <div className="flex gap-2 mt-1">
+                            {movie.rating && <Badge variant="secondary" className="text-xs">{movie.rating}</Badge>}
+                            {movie.genre && <Badge variant="outline" className="text-xs">{movie.genre}</Badge>}
+                            <Badge variant={movie.is_active ? 'default' : 'secondary'} className="text-xs">
+                              {movie.is_active ? 'Active' : 'Inactive'}
+                            </Badge>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="flex gap-1">
+                        <Button variant="ghost" size="sm" asChild>
+                          <Link to={`/admin/movies/${movie.id}`}><Edit className="h-4 w-4" /></Link>
+                        </Button>
+                        <Button variant="ghost" size="sm" onClick={() => deleteItem('movies', movie.id, 'Movie')}>
+                          <Trash2 className="h-4 w-4 text-destructive" />
+                        </Button>
                       </div>
                     </div>
-                  </div>
-                  <div className="flex gap-1">
-                    <Button variant="ghost" size="sm" asChild>
-                      <Link to={`/admin/movies/${movie.id}`}><Edit className="h-4 w-4" /></Link>
-                    </Button>
-                    <Button variant="ghost" size="sm" onClick={() => deleteItem('movies', movie.id, 'Movie')}>
-                      <Trash2 className="h-4 w-4 text-destructive" />
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
+                    {movieShowings.length > 0 && (
+                      <div className="mt-3 pl-8 space-y-2">
+                        <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Showings</p>
+                        {movieShowings.map(showing => (
+                          <div key={showing.id} className="flex items-center justify-between rounded-md bg-secondary/50 px-3 py-2">
+                            <div className="flex gap-2 items-center flex-wrap">
+                              <Calendar className="h-3.5 w-3.5 text-muted-foreground" />
+                              <span className="text-sm">
+                                {format(new Date(showing.start_time), 'MMM d, yyyy h:mm a')}
+                              </span>
+                              <span className="text-sm text-muted-foreground">• ${Number(showing.ticket_price).toFixed(2)}</span>
+                              {showing.venues?.name && (
+                                <Badge variant="secondary" className="text-xs">{showing.venues.name}</Badge>
+                              )}
+                            </div>
+                            <div className="flex gap-1">
+                              <Button variant="ghost" size="sm" asChild>
+                                <Link to={`/admin/showings/${showing.id}`}><Edit className="h-3.5 w-3.5" /></Link>
+                              </Button>
+                              <Button variant="ghost" size="sm" onClick={() => deleteItem('showings', showing.id, 'Showing')}>
+                                <Trash2 className="h-3.5 w-3.5 text-destructive" />
+                              </Button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              );
+            })}
             {movies.length === 0 && <p className="text-muted-foreground text-center py-8">No movies yet.</p>}
           </div>
         </TabsContent>
@@ -218,7 +255,7 @@ export default function AdminDashboard() {
           </div>
         </TabsContent>
 
-        {/* Concerts Tab */}
+        {/* Live Performances Tab */}
         <TabsContent value="concerts">
           <div className="flex items-center justify-between mb-4">
             <h2 className="font-display text-xl font-bold">Live Performances</h2>
@@ -266,84 +303,6 @@ export default function AdminDashboard() {
               </Card>
             ))}
             {concerts.length === 0 && <p className="text-muted-foreground text-center py-8">No live performances yet.</p>}
-          </div>
-        </TabsContent>
-
-        {/* Venues Tab */}
-        <TabsContent value="venues">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="font-display text-xl font-bold">Venues</h2>
-            <Button size="sm" asChild>
-              <Link to="/admin/venues/new"><Plus className="h-4 w-4 mr-1" /> Add Venue</Link>
-            </Button>
-          </div>
-          <div className="space-y-3">
-            {venues.map(venue => (
-              <Card key={venue.id} className="glass">
-                <CardContent className="p-4 flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <MapPin className="h-5 w-5 text-primary" />
-                    <div>
-                      <p className="font-medium">{venue.name}</p>
-                      <div className="flex gap-2 mt-1">
-                        <Badge variant="outline" className="text-xs">{venue.total_seats} seats</Badge>
-                        <Badge variant={venue.has_assigned_seating ? 'default' : 'secondary'} className="text-xs">
-                          {venue.has_assigned_seating ? 'Assigned Seats' : 'General Admission'}
-                        </Badge>
-                      </div>
-                    </div>
-                  </div>
-                  <div className="flex gap-1">
-                    <Button variant="ghost" size="sm" asChild>
-                      <Link to={`/admin/venues/${venue.id}`}><Edit className="h-4 w-4" /></Link>
-                    </Button>
-                    <Button variant="ghost" size="sm" onClick={() => deleteItem('venues', venue.id, 'Venue')}>
-                      <Trash2 className="h-4 w-4 text-destructive" />
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-            {venues.length === 0 && <p className="text-muted-foreground text-center py-8">No venues yet.</p>}
-          </div>
-        </TabsContent>
-
-        {/* Showings Tab */}
-        <TabsContent value="showings">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="font-display text-xl font-bold">Showings</h2>
-            <Button size="sm" asChild>
-              <Link to="/admin/showings/new"><Plus className="h-4 w-4 mr-1" /> Add Showing</Link>
-            </Button>
-          </div>
-          <div className="space-y-3">
-            {showings.map(showing => (
-              <Card key={showing.id} className="glass">
-                <CardContent className="p-4 flex items-center justify-between">
-                  <div>
-                    <p className="font-medium">{getShowingTitle(showing)}</p>
-                    <div className="flex gap-2 items-center flex-wrap">
-                      <Badge variant="outline" className="text-xs">{getShowingCategory(showing)}</Badge>
-                      <p className="text-sm text-muted-foreground">
-                        {format(new Date(showing.start_time), 'MMM d, yyyy h:mm a')} • ${Number(showing.ticket_price).toFixed(2)}
-                      </p>
-                      {showing.venues?.name && (
-                        <Badge variant="secondary" className="text-xs">{showing.venues.name}</Badge>
-                      )}
-                    </div>
-                  </div>
-                  <div className="flex gap-1">
-                    <Button variant="ghost" size="sm" asChild>
-                      <Link to={`/admin/showings/${showing.id}`}><Edit className="h-4 w-4" /></Link>
-                    </Button>
-                    <Button variant="ghost" size="sm" onClick={() => deleteItem('showings', showing.id, 'Showing')}>
-                      <Trash2 className="h-4 w-4 text-destructive" />
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-            {showings.length === 0 && <p className="text-muted-foreground text-center py-8">No showings scheduled.</p>}
           </div>
         </TabsContent>
 
