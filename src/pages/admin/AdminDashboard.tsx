@@ -58,13 +58,6 @@ export default function AdminDashboard() {
     return s.movies?.title || s.events?.title || s.live_performances?.title || 'Unknown';
   };
 
-  const getShowingCategory = (s: any) => {
-    if (s.movie_id) return 'Movie';
-    if (s.event_id) return 'Event';
-    if (s.live_performance_id) return 'Live Performance';
-    return '';
-  };
-
   if (authLoading) return <div className="container py-16 text-center text-muted-foreground">Loading...</div>;
 
   return (

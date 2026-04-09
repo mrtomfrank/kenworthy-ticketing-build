@@ -49,24 +49,33 @@ export default function MovieForm() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSaving(true);
-    const movieData = {
-      title,
-      description: description || null,
-      poster_url: posterUrl || null,
-      duration_minutes: duration,
-      rating: rating || null,
-      genre: genre || null,
-      is_active: isActive,
-      trailer_url: trailerUrl || null,
-    };
+    try {
+      const movieData = {
+        title,
+        description: description || null,
+        poster_url: posterUrl || null,
+        duration_minutes: duration,
+        rating: rating || null,
+        genre: genre || null,
+        is_active: isActive,
+        trailer_url: trailerUrl || null,
+      };
 
-    const { error } = isEdit
-      ? await supabase.from('movies').update(movieData).eq('id', id)
-      : await supabase.from('movies').insert(movieData);
+      const { error } = isEdit
+        ? await supabase.from('movies').update(movieData).eq('id', id)
+        : await supabase.from('movies').insert(movieData);
 
-    if (error) toast.error(error.message);
-    else { toast.success(isEdit ? 'Movie updated!' : 'Movie created!'); navigate('/admin'); }
-    setSaving(false);
+      if (error) {
+        toast.error(error.message);
+      } else {
+        toast.success(isEdit ? 'Movie updated!' : 'Movie created!');
+        navigate('/admin');
+      }
+    } catch (err: any) {
+      toast.error(err?.message || 'An unexpected error occurred');
+    } finally {
+      setSaving(false);
+    }
   };
 
   if (authLoading) return null;
