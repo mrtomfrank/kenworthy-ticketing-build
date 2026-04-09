@@ -14,45 +14,6 @@ export type Database = {
   }
   public: {
     Tables: {
-      concerts: {
-        Row: {
-          created_at: string
-          description: string | null
-          genre: string | null
-          id: string
-          is_active: boolean
-          poster_url: string | null
-          rating: string | null
-          title: string
-          trailer_url: string | null
-          updated_at: string
-        }
-        Insert: {
-          created_at?: string
-          description?: string | null
-          genre?: string | null
-          id?: string
-          is_active?: boolean
-          poster_url?: string | null
-          rating?: string | null
-          title: string
-          trailer_url?: string | null
-          updated_at?: string
-        }
-        Update: {
-          created_at?: string
-          description?: string | null
-          genre?: string | null
-          id?: string
-          is_active?: boolean
-          poster_url?: string | null
-          rating?: string | null
-          title?: string
-          trailer_url?: string | null
-          updated_at?: string
-        }
-        Relationships: []
-      }
       concession_items: {
         Row: {
           category: string
@@ -288,42 +249,42 @@ export type Database = {
       }
       host_event_assignments: {
         Row: {
-          concert_id: string | null
           created_at: string
           event_id: string | null
           id: string
+          live_performance_id: string | null
           movie_id: string | null
           user_id: string
         }
         Insert: {
-          concert_id?: string | null
           created_at?: string
           event_id?: string | null
           id?: string
+          live_performance_id?: string | null
           movie_id?: string | null
           user_id: string
         }
         Update: {
-          concert_id?: string | null
           created_at?: string
           event_id?: string | null
           id?: string
+          live_performance_id?: string | null
           movie_id?: string | null
           user_id?: string
         }
         Relationships: [
           {
-            foreignKeyName: "host_event_assignments_concert_id_fkey"
-            columns: ["concert_id"]
-            isOneToOne: false
-            referencedRelation: "concerts"
-            referencedColumns: ["id"]
-          },
-          {
             foreignKeyName: "host_event_assignments_event_id_fkey"
             columns: ["event_id"]
             isOneToOne: false
             referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "host_event_assignments_live_performance_id_fkey"
+            columns: ["live_performance_id"]
+            isOneToOne: false
+            referencedRelation: "live_performances"
             referencedColumns: ["id"]
           },
           {
@@ -334,6 +295,48 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      live_performances: {
+        Row: {
+          created_at: string
+          description: string | null
+          genre: string | null
+          id: string
+          is_active: boolean
+          poster_url: string | null
+          rating: string | null
+          subcategory: Database["public"]["Enums"]["live_performance_subcategory"]
+          title: string
+          trailer_url: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          genre?: string | null
+          id?: string
+          is_active?: boolean
+          poster_url?: string | null
+          rating?: string | null
+          subcategory?: Database["public"]["Enums"]["live_performance_subcategory"]
+          title: string
+          trailer_url?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          genre?: string | null
+          id?: string
+          is_active?: boolean
+          poster_url?: string | null
+          rating?: string | null
+          subcategory?: Database["public"]["Enums"]["live_performance_subcategory"]
+          title?: string
+          trailer_url?: string | null
+          updated_at?: string
+        }
+        Relationships: []
       }
       movies: {
         Row: {
@@ -462,11 +465,11 @@ export type Database = {
       }
       showings: {
         Row: {
-          concert_id: string | null
           created_at: string
           event_id: string | null
           id: string
           is_active: boolean
+          live_performance_id: string | null
           movie_id: string | null
           requires_seat_selection: boolean
           start_time: string
@@ -476,11 +479,11 @@ export type Database = {
           venue_id: string | null
         }
         Insert: {
-          concert_id?: string | null
           created_at?: string
           event_id?: string | null
           id?: string
           is_active?: boolean
+          live_performance_id?: string | null
           movie_id?: string | null
           requires_seat_selection?: boolean
           start_time: string
@@ -490,11 +493,11 @@ export type Database = {
           venue_id?: string | null
         }
         Update: {
-          concert_id?: string | null
           created_at?: string
           event_id?: string | null
           id?: string
           is_active?: boolean
+          live_performance_id?: string | null
           movie_id?: string | null
           requires_seat_selection?: boolean
           start_time?: string
@@ -505,17 +508,17 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "showings_concert_id_fkey"
-            columns: ["concert_id"]
-            isOneToOne: false
-            referencedRelation: "concerts"
-            referencedColumns: ["id"]
-          },
-          {
             foreignKeyName: "showings_event_id_fkey"
             columns: ["event_id"]
             isOneToOne: false
             referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "showings_live_performance_id_fkey"
+            columns: ["live_performance_id"]
+            isOneToOne: false
+            referencedRelation: "live_performances"
             referencedColumns: ["id"]
           },
           {
@@ -765,6 +768,11 @@ export type Database = {
     Enums: {
       app_role: "admin" | "regular_user" | "staff" | "host"
       event_ticket_type: "ticketed" | "rsvp" | "info_only"
+      live_performance_subcategory:
+        | "concert"
+        | "stand_up_comedy"
+        | "theatre"
+        | "dance"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -894,6 +902,12 @@ export const Constants = {
     Enums: {
       app_role: ["admin", "regular_user", "staff", "host"],
       event_ticket_type: ["ticketed", "rsvp", "info_only"],
+      live_performance_subcategory: [
+        "concert",
+        "stand_up_comedy",
+        "theatre",
+        "dance",
+      ],
     },
   },
 } as const

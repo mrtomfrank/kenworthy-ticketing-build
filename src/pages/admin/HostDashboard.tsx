@@ -13,7 +13,7 @@ import { exportContactsCsv } from '@/lib/exportContacts';
 interface Assignment {
   id: string;
   event_id: string | null;
-  concert_id: string | null;
+  live_performance_id: string | null;
   movie_id: string | null;
   production?: { title: string; type: 'event' | 'concert' | 'movie' };
 }
@@ -45,14 +45,13 @@ export default function HostDashboard() {
       return;
     }
 
-    // Fetch production details
     const eventIds = assignmentData.filter(a => a.event_id).map(a => a.event_id!);
-    const concertIds = assignmentData.filter(a => a.concert_id).map(a => a.concert_id!);
+    const lpIds = assignmentData.filter(a => a.live_performance_id).map(a => a.live_performance_id!);
     const movieIds = assignmentData.filter(a => a.movie_id).map(a => a.movie_id!);
 
-    const [eventsRes, concertsRes, moviesRes] = await Promise.all([
+    const [eventsRes, lpRes, moviesRes] = await Promise.all([
       eventIds.length ? supabase.from('events').select('id, title').in('id', eventIds) : { data: [] },
-      concertIds.length ? supabase.from('concerts').select('id, title').in('id', concertIds) : { data: [] },
+      lpIds.length ? supabase.from('live_performances').select('id, title').in('id', lpIds) : { data: [] },
       movieIds.length ? supabase.from('movies').select('id, title').in('id', movieIds) : { data: [] },
     ]);
 
@@ -61,8 +60,8 @@ export default function HostDashboard() {
       if (a.event_id) {
         const ev = (eventsRes.data || []).find((e: any) => e.id === a.event_id);
         production = { title: ev?.title || 'Unknown Event', type: 'event' };
-      } else if (a.concert_id) {
-        const c = (concertsRes.data || []).find((c: any) => c.id === a.concert_id);
+      } else if (a.live_performance_id) {
+        const c = (lpRes.data || []).find((c: any) => c.id === a.live_performance_id);
         production = { title: c?.title || 'Unknown Performance', type: 'concert' };
       } else if (a.movie_id) {
         const m = (moviesRes.data || []).find((m: any) => m.id === a.movie_id);
@@ -73,9 +72,6 @@ export default function HostDashboard() {
 
     setAssignments(enriched);
 
-    // Get showings for assigned productions
-    const allProductionIds = assignmentData.map(a => a.event_id || a.concert_id || a.movie_id).filter(Boolean);
-    
     const { data: showingsData } = await supabase
       .from('showings')
       .select('*')
@@ -84,13 +80,12 @@ export default function HostDashboard() {
     const relevantShowings = (showingsData || []).filter(s =>
       assignmentData.some(a =>
         (a.event_id && s.event_id === a.event_id) ||
-        (a.concert_id && s.concert_id === a.concert_id) ||
+        (a.live_performance_id && s.live_performance_id === a.live_performance_id) ||
         (a.movie_id && s.movie_id === a.movie_id)
       )
     );
     setShowings(relevantShowings);
 
-    // Get ticket counts per showing
     const counts: Record<string, number> = {};
     for (const s of relevantShowings) {
       const { count } = await supabase
@@ -105,9 +100,9 @@ export default function HostDashboard() {
 
   const handleExport = async (a: Assignment) => {
     if (!a.production) return;
-    const productionId = a.event_id || a.concert_id || a.movie_id;
+    const productionId = a.event_id || a.live_performance_id || a.movie_id;
     if (!productionId) return;
-    
+
     const count = await exportContactsCsv(a.production.type, productionId, a.production.title);
     if (count === null) {
       toast.info('No attendees found for this production');
@@ -138,7 +133,7 @@ export default function HostDashboard() {
             const Icon = getIcon(a.production?.type);
             const productionShowings = showings.filter(s =>
               (a.event_id && s.event_id === a.event_id) ||
-              (a.concert_id && s.concert_id === a.concert_id) ||
+              (a.live_performance_id && s.live_performance_id === a.live_performance_id) ||
               (a.movie_id && s.movie_id === a.movie_id)
             );
             const totalTickets = productionShowings.reduce((sum, s) => sum + (ticketCounts[s.id] || 0), 0);

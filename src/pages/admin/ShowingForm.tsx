@@ -53,7 +53,7 @@ export default function ShowingForm() {
     Promise.all([
       supabase.from('movies').select('id, title, is_active').order('title'),
       supabase.from('events').select('id, title, ticket_type, is_active').order('title'),
-      supabase.from('concerts').select('id, title, is_active').order('title'),
+      supabase.from('live_performances').select('id, title, is_active').order('title'),
       supabase.from('venues').select('id, name, has_assigned_seating').order('name'),
     ]).then(([moviesRes, eventsRes, concertsRes, venuesRes]) => {
       setMovies(moviesRes.data || []);
@@ -71,7 +71,7 @@ export default function ShowingForm() {
         if (data) {
           if (data.movie_id) { setCategory('movie'); setItemId(data.movie_id); }
           else if (data.event_id) { setCategory('event'); setItemId(data.event_id); }
-          else if (data.concert_id) { setCategory('concert'); setItemId(data.concert_id); }
+          else if (data.live_performance_id) { setCategory('concert'); setItemId(data.live_performance_id); }
           setVenueId(data.venue_id || '');
           const dt = new Date(data.start_time);
           const local = new Date(dt.getTime() - dt.getTimezoneOffset() * 60000)
@@ -121,7 +121,8 @@ export default function ShowingForm() {
     const showingData: any = {
       movie_id: category === 'movie' ? itemId : null,
       event_id: category === 'event' ? itemId : null,
-      concert_id: category === 'concert' ? itemId : null,
+      concert_id: undefined,
+      live_performance_id: category === 'concert' ? itemId : null,
       venue_id: venueId || null,
       start_time: new Date(startTime).toISOString(),
       ticket_price: parseFloat(ticketPrice),

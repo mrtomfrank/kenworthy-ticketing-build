@@ -8,8 +8,16 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
 import { PosterUpload } from '@/components/admin/PosterUpload';
+
+const SUBCATEGORIES = [
+  { value: 'concert', label: 'Concert' },
+  { value: 'stand_up_comedy', label: 'Stand-up Comedy' },
+  { value: 'theatre', label: 'Theatre' },
+  { value: 'dance', label: 'Dance' },
+] as const;
 
 export default function ConcertForm() {
   const { id } = useParams();
@@ -22,6 +30,7 @@ export default function ConcertForm() {
   const [posterUrl, setPosterUrl] = useState('');
   const [genre, setGenre] = useState('');
   const [rating, setRating] = useState('');
+  const [subcategory, setSubcategory] = useState<string>('concert');
   const [isActive, setIsActive] = useState(false);
   const [trailerUrl, setTrailerUrl] = useState('');
   const [saving, setSaving] = useState(false);
@@ -30,13 +39,14 @@ export default function ConcertForm() {
     if (authLoading) return;
     if (!isAdmin) { navigate('/'); return; }
     if (isEdit) {
-      supabase.from('concerts').select('*').eq('id', id).single().then(({ data }) => {
+      supabase.from('live_performances').select('*').eq('id', id).single().then(({ data }) => {
         if (data) {
           setTitle(data.title);
           setDescription(data.description || '');
           setPosterUrl(data.poster_url || '');
           setGenre(data.genre || '');
           setRating(data.rating || '');
+          setSubcategory(data.subcategory || 'concert');
           setIsActive(data.is_active);
           setTrailerUrl(data.trailer_url || '');
         }
@@ -47,19 +57,20 @@ export default function ConcertForm() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSaving(true);
-    const concertData = {
+    const performanceData = {
       title,
       description: description || null,
       poster_url: posterUrl || null,
       genre: genre || null,
       rating: rating || null,
+      subcategory: subcategory as any,
       is_active: isActive,
       trailer_url: trailerUrl || null,
     };
 
     const { error } = isEdit
-      ? await supabase.from('concerts').update(concertData).eq('id', id)
-      : await supabase.from('concerts').insert(concertData);
+      ? await supabase.from('live_performances').update(performanceData).eq('id', id)
+      : await supabase.from('live_performances').insert(performanceData);
 
     if (error) toast.error(error.message);
     else { toast.success(isEdit ? 'Performance updated!' : 'Performance created!'); navigate('/admin'); }
@@ -82,10 +93,21 @@ export default function ConcertForm() {
               <Input required value={title} onChange={e => setTitle(e.target.value)} />
             </div>
             <div className="space-y-2">
+              <Label>Subcategory *</Label>
+              <Select value={subcategory} onValueChange={setSubcategory}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {SUBCATEGORIES.map(s => (
+                    <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
               <Label>Description</Label>
               <Textarea value={description} onChange={e => setDescription(e.target.value)} rows={3} />
             </div>
-            <PosterUpload currentUrl={posterUrl} onUrlChange={setPosterUrl} folder="concerts" />
+            <PosterUpload currentUrl={posterUrl} onUrlChange={setPosterUrl} folder="live_performances" />
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>Genre</Label>

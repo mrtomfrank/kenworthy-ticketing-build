@@ -34,9 +34,9 @@ export default function AdminDashboard() {
     const [moviesRes, eventsRes, concertsRes, venuesRes, showingsRes, ticketsRes] = await Promise.all([
       supabase.from('movies').select('*').order('created_at', { ascending: false }),
       supabase.from('events').select('*').order('created_at', { ascending: false }),
-      supabase.from('concerts').select('*').order('created_at', { ascending: false }),
+      supabase.from('live_performances').select('*').order('created_at', { ascending: false }),
       supabase.from('venues').select('*').order('name'),
-      supabase.from('showings').select('*, movies(title), events(title), concerts(title), venues(name)').order('start_time', { ascending: false }),
+      supabase.from('showings').select('*, movies(title), events(title), live_performances(title), venues(name)').order('start_time', { ascending: false }),
       supabase.from('tickets').select('id', { count: 'exact' }),
     ]);
     setMovies(moviesRes.data || []);
@@ -47,7 +47,7 @@ export default function AdminDashboard() {
     setTicketCount(ticketsRes.count || 0);
   }
 
-  const deleteItem = async (table: 'movies' | 'events' | 'concerts' | 'venues' | 'showings', id: string, label: string) => {
+  const deleteItem = async (table: 'movies' | 'events' | 'live_performances' | 'venues' | 'showings', id: string, label: string) => {
     if (!confirm(`Delete this ${label}?`)) return;
     const { error } = await supabase.from(table).delete().eq('id', id);
     if (error) toast.error(error.message);
@@ -55,13 +55,13 @@ export default function AdminDashboard() {
   };
 
   const getShowingTitle = (s: any) => {
-    return s.movies?.title || s.events?.title || s.concerts?.title || 'Unknown';
+    return s.movies?.title || s.events?.title || s.live_performances?.title || 'Unknown';
   };
 
   const getShowingCategory = (s: any) => {
     if (s.movie_id) return 'Movie';
     if (s.event_id) return 'Event';
-    if (s.concert_id) return 'Live Performance';
+    if (s.live_performance_id) return 'Live Performance';
     return '';
   };
 
@@ -263,7 +263,7 @@ export default function AdminDashboard() {
                     <Button variant="ghost" size="sm" asChild>
                       <Link to={`/admin/concerts/${concert.id}`}><Edit className="h-4 w-4" /></Link>
                     </Button>
-                    <Button variant="ghost" size="sm" onClick={() => deleteItem('concerts', concert.id, 'Live Performance')}>
+                    <Button variant="ghost" size="sm" onClick={() => deleteItem('live_performances', concert.id, 'Live Performance')}>
                       <Trash2 className="h-4 w-4 text-destructive" />
                     </Button>
                   </div>
