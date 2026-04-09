@@ -54,9 +54,6 @@ export default function AdminDashboard() {
     else { toast.success(`${label} deleted`); loadData(); }
   };
 
-  const getShowingTitle = (s: any) => {
-    return s.movies?.title || s.events?.title || s.live_performances?.title || 'Unknown';
-  };
 
   if (authLoading) return <div className="container py-16 text-center text-muted-foreground">Loading...</div>;
 
