@@ -10,6 +10,7 @@ import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { Film, Calendar, Clock, DollarSign, Check, Minus, Plus, MapPin, Sparkles, Music, CreditCard } from 'lucide-react';
 import { SeatMap } from '@/components/SeatMap';
+import { GuestCheckoutForm } from '@/components/GuestCheckoutForm';
 import { type Seat, type PriceTier, TAX_RATE, buildTicketRows, computeOrderTotals, computeLineItemTotals, type TicketLineItem } from '@/lib/booking';
 
 type ProductionType = 'movie' | 'event' | 'concert';
