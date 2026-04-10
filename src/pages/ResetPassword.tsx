@@ -44,7 +44,8 @@ export default function ResetPassword() {
       const { error } = await supabase.auth.updateUser({ password });
       if (error) throw error;
       toast.success('Password updated successfully!');
-      navigate('/');
+      // Use hard redirect to avoid race with auth state change re-renders
+      window.location.href = '/';
     } catch (err: any) {
       toast.error(err.message);
     } finally {
