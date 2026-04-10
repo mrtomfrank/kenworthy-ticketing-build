@@ -1,0 +1,102 @@
+import { useState } from 'react';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Button } from '@/components/ui/button';
+import { Check, User, Mail, Phone } from 'lucide-react';
+
+interface GuestCheckoutFormProps {
+  ticketCount: number;
+  total: number;
+  purchasing: boolean;
+  onPurchase: (guestInfo: { name: string; email: string; phone: string }) => void;
+}
+
+export function GuestCheckoutForm({ ticketCount, total, purchasing, onPurchase }: GuestCheckoutFormProps) {
+  const [name, setName] = useState('');
+  const [email, setEmail] = useState('');
+  const [phone, setPhone] = useState('');
+  const [errors, setErrors] = useState<Record<string, string>>({});
+
+  const validate = () => {
+    const newErrors: Record<string, string> = {};
+    if (!name.trim()) newErrors.name = 'Name is required';
+    if (!email.trim() && !phone.trim()) newErrors.contact = 'Email or phone is required';
+    if (email.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
+      newErrors.email = 'Invalid email format';
+    }
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const handleSubmit = () => {
+    if (!validate()) return;
+    onPurchase({ name: name.trim(), email: email.trim(), phone: phone.trim() });
+  };
+
+  return (
+    <div className="space-y-3">
+      <div className="border-t border-border pt-3">
+        <p className="text-sm font-medium mb-3 flex items-center gap-1">
+          <User className="h-4 w-4" /> Your Info
+        </p>
+        <div className="space-y-2">
+          <div>
+            <Label htmlFor="guest-name" className="text-xs">Name *</Label>
+            <Input
+              id="guest-name"
+              placeholder="Your name"
+              value={name}
+              onChange={e => setName(e.target.value)}
+              maxLength={100}
+            />
+            {errors.name && <p className="text-xs text-destructive mt-1">{errors.name}</p>}
+          </div>
+          <div>
+            <Label htmlFor="guest-email" className="text-xs flex items-center gap-1">
+              <Mail className="h-3 w-3" /> Email
+            </Label>
+            <Input
+              id="guest-email"
+              type="email"
+              placeholder="you@example.com"
+              value={email}
+              onChange={e => setEmail(e.target.value)}
+              maxLength={255}
+            />
+            {errors.email && <p className="text-xs text-destructive mt-1">{errors.email}</p>}
+          </div>
+          <div>
+            <Label htmlFor="guest-phone" className="text-xs flex items-center gap-1">
+              <Phone className="h-3 w-3" /> Phone
+            </Label>
+            <Input
+              id="guest-phone"
+              type="tel"
+              placeholder="(208) 555-1234"
+              value={phone}
+              onChange={e => setPhone(e.target.value)}
+              maxLength={20}
+            />
+          </div>
+          {errors.contact && <p className="text-xs text-destructive mt-1">{errors.contact}</p>}
+          <p className="text-xs text-muted-foreground">
+            Provide email or phone so we can send your tickets. If you already have an account, the tickets will be added to it.
+          </p>
+        </div>
+      </div>
+
+      <Button
+        className="w-full"
+        size="lg"
+        onClick={handleSubmit}
+        disabled={purchasing}
+      >
+        <Check className="h-4 w-4 mr-1" />
+        {purchasing ? 'Processing...' : `Purchase ${ticketCount} Ticket(s)`}
+      </Button>
+      <p className="text-xs text-muted-foreground text-center">
+        Simulated checkout — no real charge
+      </p>
+    </div>
+  );
+}
