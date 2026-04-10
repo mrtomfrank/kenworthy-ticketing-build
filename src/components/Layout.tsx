@@ -13,9 +13,8 @@ export function Layout({ children }: { children: React.ReactNode }) {
     } catch (err) {
       console.error('Sign out error:', err);
     }
-    // Always navigate away, even if signOut fails
-    navigate('/auth');
-    window.location.reload();
+    // Use direct location change for cross-browser reliability (Firefox races navigate + reload)
+    window.location.href = '/auth';
   };
 
   return (
