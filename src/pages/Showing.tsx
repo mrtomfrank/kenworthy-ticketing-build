@@ -590,21 +590,32 @@ export default function Showing() {
                     </div>
                   )}
 
-                  <Button
-                    className="w-full"
-                    size="lg"
-                    onClick={handlePurchase}
-                    disabled={purchasing || (useFilmPass && !passCoversTotal)}
-                  >
-                    {useFilmPass ? (
-                      <><CreditCard className="h-4 w-4 mr-1" /> {purchasing ? 'Redeeming...' : `Redeem Film Pass`}</>
-                    ) : (
-                      <><Check className="h-4 w-4 mr-1" /> {purchasing ? 'Processing...' : `Purchase ${ticketCount} Ticket(s)`}</>
-                    )}
-                  </Button>
-                  <p className="text-xs text-muted-foreground text-center">
-                    {useFilmPass ? 'Pass balance will be deducted' : 'Simulated checkout — no real charge'}
-                  </p>
+                  {user ? (
+                    <>
+                      <Button
+                        className="w-full"
+                        size="lg"
+                        onClick={handlePurchase}
+                        disabled={purchasing || (useFilmPass && !passCoversTotal)}
+                      >
+                        {useFilmPass ? (
+                          <><CreditCard className="h-4 w-4 mr-1" /> {purchasing ? 'Redeeming...' : `Redeem Film Pass`}</>
+                        ) : (
+                          <><Check className="h-4 w-4 mr-1" /> {purchasing ? 'Processing...' : `Purchase ${ticketCount} Ticket(s)`}</>
+                        )}
+                      </Button>
+                      <p className="text-xs text-muted-foreground text-center">
+                        {useFilmPass ? 'Pass balance will be deducted' : 'Simulated checkout — no real charge'}
+                      </p>
+                    </>
+                  ) : (
+                    <GuestCheckoutForm
+                      ticketCount={ticketCount}
+                      total={total}
+                      purchasing={purchasing}
+                      onPurchase={handleGuestPurchase}
+                    />
+                  )}
                 </>
               )}
             </CardContent>
