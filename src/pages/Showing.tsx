@@ -200,6 +200,61 @@ export default function Showing() {
   const selectedPass = userPasses.find((p: any) => p.id === selectedPassId);
   const passCoversTotal = useFilmPass && selectedPass && Number(selectedPass.remaining_balance) >= subtotal;
 
+  const handleGuestPurchase = async (guestInfo: { name: string; email: string; phone: string }) => {
+    if (ticketCount === 0) { toast.error('Please select at least one ticket'); return; }
+    setPurchasing(true);
+    try {
+      // Build ticket descriptors for the edge function
+      const ticketDescriptors: any[] = [];
+
+      if (hasTiers) {
+        if (isAssignedSeating) {
+          const tier = priceTiers.find(t => t.id === selectedTierId);
+          for (const seatId of selectedSeats) {
+            ticketDescriptors.push({ seat_id: seatId, tier_id: tier?.id });
+          }
+        } else {
+          for (const tier of priceTiers) {
+            const qty = tierQuantities[tier.id] || 0;
+            for (let i = 0; i < qty; i++) {
+              ticketDescriptors.push({ tier_id: tier.id });
+            }
+          }
+        }
+      } else {
+        if (isAssignedSeating) {
+          for (const seatId of selectedSeats) {
+            ticketDescriptors.push({ seat_id: seatId });
+          }
+        } else {
+          for (let i = 0; i < gaQuantity; i++) {
+            ticketDescriptors.push({});
+          }
+        }
+      }
+
+      const { data, error } = await supabase.functions.invoke('guest-checkout', {
+        body: {
+          guest_name: guestInfo.name,
+          guest_email: guestInfo.email || undefined,
+          guest_phone: guestInfo.phone || undefined,
+          showing_id: id,
+          tickets: ticketDescriptors,
+        },
+      });
+
+      if (error) throw new Error(error.message || 'Checkout failed');
+      if (data?.error) throw new Error(data.error);
+
+      toast.success(`${ticketCount} ticket(s) purchased! Check your email/phone for your QR code(s).`);
+      navigate('/');
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to purchase tickets');
+    } finally {
+      setPurchasing(false);
+    }
+  };
+
   const handlePurchase = async () => {
     if (!user) { navigate('/auth'); return; }
     if (ticketCount === 0) { toast.error('Please select at least one ticket'); return; }
@@ -262,7 +317,6 @@ export default function Showing() {
       // Redeem film pass for each ticket
       if (useFilmPass && ticketData) {
         for (const ticket of ticketData) {
-          // Calculate per-ticket price (subtotal / count)
           const perTicketAmount = Math.round((subtotal / ticketCount) * 100) / 100;
           const { error: redeemError } = await supabase.rpc('redeem_film_pass', {
             p_pass_id: selectedPassId,
