@@ -8,8 +8,14 @@ export function Layout({ children }: { children: React.ReactNode }) {
   const navigate = useNavigate();
 
   const handleSignOut = async () => {
-    await signOut();
-    navigate('/');
+    try {
+      await signOut();
+    } catch (err) {
+      console.error('Sign out error:', err);
+    }
+    // Always navigate away, even if signOut fails
+    navigate('/auth');
+    window.location.reload();
   };
 
   return (
