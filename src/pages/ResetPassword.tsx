@@ -16,14 +16,13 @@ export default function ResetPassword() {
   const [ready, setReady] = useState(false);
 
   useEffect(() => {
-    // Listen for the PASSWORD_RECOVERY event
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
       if (event === 'PASSWORD_RECOVERY') {
         setReady(true);
       }
     });
-    // Also check hash for type=recovery
-    if (window.location.hash.includes('type=recovery')) {
+    // Check hash and query params for recovery token
+    if (window.location.hash.includes('type=recovery') || window.location.href.includes('type=recovery')) {
       setReady(true);
     }
     return () => subscription.unsubscribe();
@@ -44,7 +43,7 @@ export default function ResetPassword() {
       const { error } = await supabase.auth.updateUser({ password });
       if (error) throw error;
       toast.success('Password updated successfully!');
-      // Use hard redirect to avoid race with auth state change re-renders
+      // Use hard redirect to avoid stale auth state
       window.location.href = '/';
     } catch (err: any) {
       toast.error(err.message);

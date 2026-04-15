@@ -24,30 +24,32 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [isHost, setIsHost] = useState(false);
   const [loading, setLoading] = useState(true);
 
-  const checkRoles = async (userId: string) => {
-    const { data } = await supabase
+  const checkRoles = (userId: string) => {
+    supabase
       .from('user_roles')
       .select('role')
-      .eq('user_id', userId);
-    const roles = (data || []).map(r => r.role);
-    setIsAdmin(roles.includes('admin'));
-    setIsStaff(roles.includes('staff') || roles.includes('admin'));
-    setIsHost(roles.includes('host'));
+      .eq('user_id', userId)
+      .then(({ data }) => {
+        const roles = (data || []).map(r => r.role);
+        setIsAdmin(roles.includes('admin'));
+        setIsStaff(roles.includes('staff') || roles.includes('admin'));
+        setIsHost(roles.includes('host'));
+      });
   };
 
   useEffect(() => {
-    supabase.auth.getSession().then(async ({ data: { session } }) => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
       setUser(session?.user ?? null);
-      if (session?.user) await checkRoles(session.user.id);
+      if (session?.user) checkRoles(session.user.id);
       setLoading(false);
     });
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setSession(session);
       setUser(session?.user ?? null);
       if (session?.user) {
-        await checkRoles(session.user.id);
+        checkRoles(session.user.id);
       } else {
         setIsAdmin(false);
         setIsStaff(false);

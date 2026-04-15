@@ -7,17 +7,13 @@ export function Layout({ children }: { children: React.ReactNode }) {
   const { user, isAdmin, isHost, signOut } = useAuth();
   const navigate = useNavigate();
 
-  const handleSignOut = async (e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
+  const handleSignOut = async () => {
     try {
-      await Promise.race([
-        signOut(),
-        new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 3000))
-      ]);
+      await signOut();
     } catch (err) {
       console.error('Sign out error:', err);
     }
+    // Use direct location change for cross-browser reliability (Firefox races navigate + reload)
     window.location.href = '/auth';
   };
 
