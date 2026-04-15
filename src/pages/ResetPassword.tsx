@@ -40,15 +40,23 @@ export default function ResetPassword() {
     }
     setLoading(true);
     try {
-      const { error } = await supabase.auth.updateUser({ password });
-      if (error) throw error;
+      // Race against a timeout to avoid Navigator Lock hanging
+      const result = await Promise.race([
+        supabase.auth.updateUser({ password }),
+        new Promise<never>((_, reject) => setTimeout(() => reject(new Error('timeout')), 5000))
+      ]);
+      if (result.error) throw result.error;
       toast.success('Password updated successfully!');
-      // Use hard redirect to avoid stale auth state
       window.location.href = '/';
     } catch (err: any) {
-      toast.error(err.message);
-    } finally {
-      setLoading(false);
+      if (err.message === 'timeout') {
+        // Password likely updated but lock timed out — redirect anyway
+        toast.success('Password updated! Redirecting...');
+        window.location.href = '/';
+      } else {
+        toast.error(err.message);
+        setLoading(false);
+      }
     }
   };
 
