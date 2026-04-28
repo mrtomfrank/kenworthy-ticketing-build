@@ -2,6 +2,8 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/lib/auth';
 import { Button } from '@/components/ui/button';
 import { Film, Ticket, LogOut, Shield, User, CreditCard, Home, MapPin, Mail, Phone } from 'lucide-react';
+import kenworthyK from '@/assets/kenworthy-k.svg';
+import kenworthyWordmark from '@/assets/kenworthy-logo.svg';
 
 export function Layout({ children }: { children: React.ReactNode }) {
   const { user, isAdmin, isHost, signOut } = useAuth();
@@ -22,13 +24,12 @@ export function Layout({ children }: { children: React.ReactNode }) {
       <header className="sticky top-0 z-50 glass border-b border-accent/20">
         <div className="container flex h-[68px] items-center justify-between gap-4">
           <Link to="/" className="flex items-center gap-3 group" aria-label="The Kenworthy — home">
-            {/* Marquee-bulb K mark */}
+            {/* Official Kenworthy K mark */}
             <span
-              className="relative inline-flex h-9 w-9 items-center justify-center rounded-sm bg-primary/10 ring-1 ring-primary/40 transition-all group-hover:bg-primary/20 group-hover:ring-primary"
+              className="relative inline-flex h-10 w-10 items-center justify-center text-primary transition-colors group-hover:text-accent"
               aria-hidden
             >
-              <span className="font-display text-lg leading-none text-primary">K</span>
-              <span className="absolute -top-0.5 -right-0.5 h-1.5 w-1.5 rounded-full bg-accent shadow-[0_0_6px_hsl(var(--accent))]" />
+              <img src={kenworthyK} alt="" className="h-full w-full" style={{ filter: 'none' }} />
             </span>
             <span className="flex flex-col leading-tight">
               <span className="font-display text-xl tracking-wide">The Kenworthy</span>
@@ -92,7 +93,11 @@ export function Layout({ children }: { children: React.ReactNode }) {
       <footer className="mt-auto border-t border-accent/20 bg-card/40">
         <div className="container py-10 grid gap-8 md:grid-cols-3 text-sm">
           <div>
-            <div className="font-display text-2xl tracking-wide mb-1">The Kenworthy</div>
+            <img
+              src={kenworthyWordmark}
+              alt="The Kenworthy Performing Arts Centre"
+              className="h-10 w-auto mb-3"
+            />
             <p className="font-serif italic text-muted-foreground">
               A century of stories, told one screening at a time.
             </p>
