@@ -3,6 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { ProductionDetailDrawer } from '@/components/ProductionDetailDrawer';
 import { TrailerFeed, type FeedItem } from '@/components/home/TrailerFeed';
 import { EditorialCalendar } from '@/components/home/EditorialCalendar';
+import { BackstageTeaser } from '@/components/home/BackstageTeaser';
 
 type ProductionType = 'movie' | 'event' | 'concert';
 
@@ -192,6 +193,12 @@ export default function Index() {
           </div>
         </div>
       </div>
+
+      {/* A quiet whisper at the bottom of the page — the speakeasy room
+          tucked inside the Kenworthy. On desktop the split-scroll fills the
+          viewport, so this section is the natural reward for scrolling past
+          either rail. */}
+      <BackstageTeaser />
 
       <ProductionDetailDrawer
         production={selectedProduction}
