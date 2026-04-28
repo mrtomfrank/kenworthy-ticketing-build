@@ -2,56 +2,65 @@
 @tailwind components;
 @tailwind utilities;
 
-@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700;800&family=Inter:wght@300;400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Anton&family=Fraunces:opsz,wght@9..144,300;9..144,400;9..144,500;9..144,600;9..144,700;9..144,800&family=Inter:wght@300;400;500;600;700&display=swap');
 
 @layer base {
   :root {
-    --background: 240 10% 3.9%;
-    --foreground: 0 0% 95%;
+    /* Kenworthy palette: deep marquee black, magenta gel light, century gold,
+       paper-program cream. Pulled from kenworthy.org and the building's
+       neon marquee. */
+    --background: 0 0% 6%;
+    --foreground: 38 30% 94%;
 
-    --card: 240 6% 8%;
-    --card-foreground: 0 0% 95%;
+    --card: 0 0% 9%;
+    --card-foreground: 38 30% 94%;
 
-    --popover: 240 6% 8%;
-    --popover-foreground: 0 0% 95%;
+    --popover: 0 0% 9%;
+    --popover-foreground: 38 30% 94%;
 
-    --primary: 35 95% 55%;
-    --primary-foreground: 240 10% 3.9%;
+    /* Magenta — neon marquee tubing, matches the .org Donate button */
+    --primary: 333 78% 52%;
+    --primary-foreground: 38 30% 96%;
 
-    --secondary: 240 4% 16%;
-    --secondary-foreground: 0 0% 95%;
+    --secondary: 0 0% 14%;
+    --secondary-foreground: 38 30% 94%;
 
-    --muted: 240 4% 16%;
-    --muted-foreground: 240 5% 55%;
+    --muted: 0 0% 14%;
+    --muted-foreground: 38 10% 65%;
 
-    --accent: 280 60% 50%;
-    --accent-foreground: 0 0% 98%;
+    /* Gold — "Celebrating 100 Years," historical accents, dividers */
+    --accent: 41 65% 56%;
+    --accent-foreground: 0 0% 6%;
+
+    /* Paper-program cream — secondary surface, editorial column on light variant */
+    --paper: 38 30% 92%;
+    --paper-foreground: 0 0% 10%;
 
     --destructive: 0 72% 51%;
-    --destructive-foreground: 0 0% 98%;
+    --destructive-foreground: 38 30% 96%;
 
-    --border: 240 4% 16%;
-    --input: 240 4% 16%;
-    --ring: 35 95% 55%;
+    --border: 0 0% 16%;
+    --input: 0 0% 16%;
+    --ring: 333 78% 52%;
 
-    --radius: 0.75rem;
+    --radius: 0.5rem;
 
-    --sidebar-background: 240 6% 6%;
-    --sidebar-foreground: 0 0% 90%;
-    --sidebar-primary: 35 95% 55%;
-    --sidebar-primary-foreground: 240 10% 3.9%;
-    --sidebar-accent: 240 4% 12%;
-    --sidebar-accent-foreground: 0 0% 90%;
-    --sidebar-border: 240 4% 14%;
-    --sidebar-ring: 35 95% 55%;
+    --sidebar-background: 0 0% 7%;
+    --sidebar-foreground: 38 30% 90%;
+    --sidebar-primary: 333 78% 52%;
+    --sidebar-primary-foreground: 38 30% 96%;
+    --sidebar-accent: 0 0% 12%;
+    --sidebar-accent-foreground: 38 30% 90%;
+    --sidebar-border: 0 0% 14%;
+    --sidebar-ring: 333 78% 52%;
 
-    --success: 142 76% 36%;
-    --success-foreground: 0 0% 98%;
+    --success: 142 60% 42%;
+    --success-foreground: 38 30% 96%;
 
-    --chart-1: 35 95% 55%;
-    --chart-2: 280 60% 50%;
-    --chart-3: 142 76% 36%;
-    --chart-4: 200 80% 50%;
+    --chart-1: 333 78% 52%;
+    --chart-2: 41 65% 56%;
+    --chart-3: 142 60% 42%;
+    --chart-4: 200 70% 55%;
     --chart-5: 0 72% 51%;
   }
 }
@@ -63,28 +72,60 @@
 
   body {
     @apply bg-background text-foreground font-sans antialiased;
-    font-family: 'Inter', sans-serif;
+    font-family: 'Fraunces', Georgia, serif;
+    font-size: 17px;
+    line-height: 1.6;
+    font-optical-sizing: auto;
   }
 
   h1, h2, h3, h4, h5, h6 {
-    font-family: 'Playfair Display', serif;
+    font-family: 'Anton', 'Bebas Neue', Impact, sans-serif;
+    letter-spacing: 0.01em;
+    text-transform: uppercase;
   }
 }
 
 @layer utilities {
   .text-gradient {
-    @apply bg-clip-text text-transparent bg-gradient-to-r from-primary to-accent;
+    @apply bg-clip-text text-transparent bg-gradient-to-r from-primary via-primary to-accent;
   }
-  
+
   .glass {
     @apply bg-card/80 backdrop-blur-xl border border-border/50;
   }
 
   .glow-primary {
-    box-shadow: 0 0 30px -5px hsl(35 95% 55% / 0.3);
+    box-shadow: 0 0 40px -8px hsl(333 78% 52% / 0.45);
   }
 
   .glow-accent {
-    box-shadow: 0 0 30px -5px hsl(280 60% 50% / 0.3);
+    box-shadow: 0 0 40px -8px hsl(41 65% 56% / 0.35);
+  }
+
+  /* Marquee divider — thin gold rule with a centered bulb-dot, evokes
+     the hand-painted dividers used on the .org calendar */
+  .marquee-rule {
+    @apply relative h-px w-full bg-accent/40;
+  }
+  .marquee-rule::after {
+    content: "";
+    @apply absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 h-1.5 w-1.5 rounded-full bg-accent;
+    box-shadow: 0 0 8px hsl(41 65% 56% / 0.8);
+  }
+
+  /* Snap container for the trailer feed */
+  .snap-feed {
+    scroll-snap-type: y mandatory;
+    -webkit-overflow-scrolling: touch;
+  }
+  .snap-feed > * {
+    scroll-snap-align: start;
+    scroll-snap-stop: always;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .snap-feed {
+      scroll-snap-type: none;
+    }
   }
 }
