@@ -1,59 +1,103 @@
-import { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { useEffect, useMemo, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { Card, CardContent } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Film, Clock, Calendar, MapPin, Music, Sparkles } from 'lucide-react';
-import { format } from 'date-fns';
 import { ProductionDetailDrawer } from '@/components/ProductionDetailDrawer';
+import { TrailerFeed, type FeedItem } from '@/components/home/TrailerFeed';
+import { EditorialCalendar } from '@/components/home/EditorialCalendar';
 
-interface ShowingInfo {
+type ProductionType = 'movie' | 'event' | 'concert';
+
+interface RawShowing {
   id: string;
   start_time: string;
   ticket_price: number;
+  movie_id: string | null;
+  event_id: string | null;
+  live_performance_id: string | null;
 }
 
-interface MovieWithShowings {
+interface RawProduction {
   id: string;
   title: string;
   description: string | null;
   poster_url: string | null;
   trailer_url: string | null;
-  duration_minutes: number;
-  rating: string | null;
-  genre: string | null;
-  showings: ShowingInfo[];
+  rating?: string | null;
+  genre?: string | null;
+  // event-only
+  ticket_type?: string;
+  rsvp_url?: string | null;
 }
 
-interface EventWithShowings {
-  id: string;
-  title: string;
-  description: string | null;
-  poster_url: string | null;
-  trailer_url: string | null;
-  rating: string | null;
-  genre: string | null;
-  ticket_type: string;
-  rsvp_url: string | null;
-  showings: ShowingInfo[];
-}
+function buildFeed(
+  productions: Array<{ row: RawProduction; type: ProductionType }>,
+  showings: RawShowing[],
+): { feed: FeedItem[]; productionsById: Map<string, RawProduction & { type: ProductionType }> } {
+  const byId = new Map<string, RawProduction & { type: ProductionType }>();
+  for (const { row, type } of productions) {
+    byId.set(`${type}:${row.id}`, { ...row, type });
+  }
 
-interface ConcertWithShowings {
-  id: string;
-  title: string;
-  description: string | null;
-  poster_url: string | null;
-  trailer_url: string | null;
-  rating: string | null;
-  genre: string | null;
-  showings: ShowingInfo[];
+  const items: FeedItem[] = [];
+  for (const s of showings) {
+    let type: ProductionType | null = null;
+    let prodId: string | null = null;
+    if (s.movie_id) { type = 'movie'; prodId = s.movie_id; }
+    else if (s.event_id) { type = 'event'; prodId = s.event_id; }
+    else if (s.live_performance_id) { type = 'concert'; prodId = s.live_performance_id; }
+    if (!type || !prodId) continue;
+
+    const prod = byId.get(`${type}:${prodId}`);
+    if (!prod) continue;
+
+    items.push({
+      id: `${type}-${prodId}-${s.id}`,
+      title: prod.title,
+      posterUrl: prod.poster_url,
+      trailerUrl: prod.trailer_url,
+      startTime: s.start_time,
+      showingId: s.id,
+      type,
+      ticketType: prod.ticket_type,
+      rsvpUrl: prod.rsvp_url,
+      curatorNote: prod.description,
+    });
+  }
+
+  // Also include RSVP / info-only events that have no showings,
+  // so the artistic team's curated work doesn't disappear from the page.
+  const showingProdIds = new Set(items.map((i) => `${i.type}:${i.title}`));
+  for (const { row, type } of productions) {
+    if (type !== 'event') continue;
+    const hasShowings = showings.some((s) => s.event_id === row.id);
+    if (hasShowings) continue;
+    if (row.ticket_type === 'rsvp' || row.ticket_type === 'info_only') {
+      // Place these at the very end with a far-future sort key,
+      // but still surface them below the dated calendar.
+      const farFuture = new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString();
+      items.push({
+        id: `${type}-${row.id}-standalone`,
+        title: row.title,
+        posterUrl: row.poster_url,
+        trailerUrl: row.trailer_url,
+        startTime: farFuture,
+        showingId: null,
+        type,
+        ticketType: row.ticket_type,
+        rsvpUrl: row.rsvp_url,
+        curatorNote: row.description,
+      });
+    }
+  }
+
+  items.sort((a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime());
+  return { feed: items, productionsById: byId };
 }
 
 export default function Index() {
-  const [movies, setMovies] = useState<MovieWithShowings[]>([]);
-  const [events, setEvents] = useState<EventWithShowings[]>([]);
-  const [concerts, setConcerts] = useState<ConcertWithShowings[]>([]);
+  const [feed, setFeed] = useState<FeedItem[]>([]);
+  const [productionsById, setProductionsById] = useState<
+    Map<string, RawProduction & { type: ProductionType }>
+  >(new Map());
   const [loading, setLoading] = useState(true);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [selectedProduction, setSelectedProduction] = useState<any>(null);
@@ -61,292 +105,96 @@ export default function Index() {
   useEffect(() => {
     async function fetchAll() {
       const now = new Date().toISOString();
-
       const [moviesRes, eventsRes, concertsRes, showingsRes] = await Promise.all([
-        supabase.from('movies').select('*').eq('is_active', true).order('title'),
-        supabase.from('events').select('*').eq('is_active', true).order('title'),
-        supabase.from('live_performances').select('*').eq('is_active', true).order('title'),
-        supabase.from('showings').select('*').eq('is_active', true).gte('start_time', now).order('start_time'),
+        supabase.from('movies').select('*').eq('is_active', true),
+        supabase.from('events').select('*').eq('is_active', true),
+        supabase.from('live_performances').select('*').eq('is_active', true),
+        supabase
+          .from('showings')
+          .select('*')
+          .eq('is_active', true)
+          .gte('start_time', now)
+          .order('start_time'),
       ]);
 
-      const showings = showingsRes.data || [];
+      const productions: Array<{ row: RawProduction; type: ProductionType }> = [
+        ...(moviesRes.data || []).map((row) => ({ row: row as RawProduction, type: 'movie' as const })),
+        ...(eventsRes.data || []).map((row) => ({ row: row as RawProduction, type: 'event' as const })),
+        ...(concertsRes.data || []).map((row) => ({ row: row as RawProduction, type: 'concert' as const })),
+      ];
 
-      setMovies((moviesRes.data || []).map(m => ({
-        ...m,
-        showings: showings.filter(s => s.movie_id === m.id),
-      })));
-
-      setEvents((eventsRes.data || []).map(e => ({
-        ...e,
-        showings: showings.filter(s => s.event_id === e.id),
-      })));
-
-      setConcerts((concertsRes.data || []).map(c => ({
-        ...c,
-        showings: showings.filter(s => s.live_performance_id === c.id),
-      })));
-
+      const { feed, productionsById } = buildFeed(productions, (showingsRes.data || []) as RawShowing[]);
+      setFeed(feed);
+      setProductionsById(productionsById);
       setLoading(false);
     }
     fetchAll();
   }, []);
 
+  const handleSelect = (item: FeedItem) => {
+    const prod = productionsById.get(`${item.type}:${item.id.split('-')[1]}`);
+    // The id format is `${type}-${prodId}-${showingId|standalone}`.
+    // Pull the production by reconstructing the key from the type and the
+    // production id segment (the second hyphen-separated chunk).
+    const segs = item.id.split('-');
+    const key = `${item.type}:${segs[1]}`;
+    const fullProd = productionsById.get(key) ?? prod;
+    if (fullProd) {
+      setSelectedProduction({ ...fullProd, type: item.type });
+      setDrawerOpen(true);
+    }
+  };
+
+  const empty = !loading && feed.length === 0;
+
   return (
-    <div>
-      {/* Hero */}
-      <section className="relative overflow-hidden py-24 px-4">
-        <div className="absolute inset-0 bg-gradient-to-b from-primary/5 via-background to-background" />
-        <div className="container relative text-center">
-          <Badge variant="outline" className="mb-4 border-primary/30 text-primary">
-            <MapPin className="h-3 w-3 mr-1" /> Moscow, Idaho
-          </Badge>
-          <h1 className="font-display text-5xl md:text-7xl font-bold mb-4 tracking-tight">
-            The <span className="text-gradient">Kenworthy</span>
-          </h1>
-          <p className="text-muted-foreground text-lg md:text-xl max-w-2xl mx-auto mb-8">
-            Performing Arts Centre — Your destination for unforgettable cinema experiences in the heart of Moscow, Idaho.
-          </p>
-          <div className="flex gap-3 justify-center">
-            <Button size="lg" asChild>
-              <a href="#now-showing">Now Showing</a>
-            </Button>
-            <Button size="lg" variant="outline" asChild>
-              <Link to="/auth?tab=signup">Create Account</Link>
-            </Button>
+    <>
+      {/* Mobile: stacked. Desktop (lg+): split-scroll, two independently scrolling rails. */}
+      <div className="lg:h-[calc(100vh-68px-1px)] lg:overflow-hidden">
+        <div className="lg:grid lg:grid-cols-[55fr_45fr] lg:h-full">
+          {/* LEFT — Trailer feed */}
+          <div className="lg:h-full lg:border-r lg:border-accent/20 lg:relative">
+            <div className="h-[80vh] lg:h-full">
+              {loading ? (
+                <div className="h-full flex items-center justify-center">
+                  <div className="font-serif italic text-muted-foreground">
+                    Warming up the projector…
+                  </div>
+                </div>
+              ) : empty ? (
+                <div className="h-full flex items-center justify-center p-8 text-center">
+                  <p className="font-serif text-muted-foreground max-w-sm">
+                    The marquee is dark for the moment. Check back soon for what's
+                    coming next on Main Street.
+                  </p>
+                </div>
+              ) : (
+                <TrailerFeed items={feed} onSelect={handleSelect} />
+              )}
+            </div>
+          </div>
+
+          {/* RIGHT — Editorial calendar */}
+          <div className="lg:h-full">
+            {loading ? (
+              <div className="p-10 space-y-6">
+                <div className="h-4 w-40 bg-muted rounded animate-pulse" />
+                <div className="h-12 w-3/4 bg-muted rounded animate-pulse" />
+                <div className="h-4 w-2/3 bg-muted rounded animate-pulse" />
+                <div className="h-64 bg-muted rounded animate-pulse" />
+              </div>
+            ) : (
+              <EditorialCalendar items={feed} onSelect={handleSelect} />
+            )}
           </div>
         </div>
-      </section>
-
-      {/* Movies */}
-      <section id="now-showing" className="container py-16 px-4">
-        <h2 className="font-display text-3xl font-bold mb-8">Now Showing</h2>
-        {loading ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {[1, 2, 3].map(i => (
-              <Card key={i} className="glass animate-pulse h-80" />
-            ))}
-          </div>
-        ) : movies.length === 0 ? (
-          <Card className="glass p-12 text-center">
-            <Film className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-            <p className="text-muted-foreground text-lg">No movies currently showing. Check back soon!</p>
-          </Card>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {movies.map((movie, i) => (
-              <Card
-                key={movie.id}
-                className="glass overflow-hidden hover:glow-primary transition-shadow duration-300 opacity-0 animate-fade-in cursor-pointer"
-                style={{ animationDelay: `${i * 100}ms` }}
-                onClick={() => { setSelectedProduction({ ...movie, type: 'movie' }); setDrawerOpen(true); }}
-              >
-                <div className="aspect-[2/3] bg-secondary flex items-center justify-center relative overflow-hidden">
-                  {movie.poster_url ? (
-                    <img src={movie.poster_url} alt={movie.title} className="w-full h-full object-cover" />
-                  ) : (
-                    <Film className="h-16 w-16 text-muted-foreground" />
-                  )}
-                  <div className="absolute top-3 right-3 flex gap-1">
-                    {movie.rating && <Badge>{movie.rating}</Badge>}
-                    {movie.genre && <Badge variant="secondary">{movie.genre}</Badge>}
-                  </div>
-                </div>
-                <CardContent className="p-5">
-                  <h3 className="font-display text-xl font-bold mb-2">{movie.title}</h3>
-                  {movie.description && (
-                    <p className="text-muted-foreground text-sm mb-3 line-clamp-2">{movie.description}</p>
-                  )}
-                  <div className="flex items-center gap-3 text-sm text-muted-foreground mb-4">
-                    <span className="flex items-center gap-1">
-                      <Clock className="h-3.5 w-3.5" /> {movie.duration_minutes} min
-                    </span>
-                  </div>
-                  {movie.showings.length > 0 ? (
-                    <div className="space-y-2">
-                      <p className="text-xs text-muted-foreground uppercase tracking-wider font-medium">Upcoming Showings</p>
-                      <div className="flex flex-wrap gap-2">
-                        {movie.showings.slice(0, 4).map(showing => (
-                          <Button key={showing.id} variant="outline" size="sm" asChild>
-                            <Link to={`/showing/${showing.id}`}>
-                              <Calendar className="h-3 w-3 mr-1" />
-                              {format(new Date(showing.start_time), 'MMM d, h:mm a')}
-                            </Link>
-                          </Button>
-                        ))}
-                      </div>
-                    </div>
-                  ) : (
-                    <p className="text-sm text-muted-foreground">No upcoming showings</p>
-                  )}
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        )}
-      </section>
-
-      {/* Events */}
-      {events.length > 0 && (
-        <section className="container py-16 px-4">
-          <h2 className="font-display text-3xl font-bold mb-8 flex items-center gap-2">
-            <Sparkles className="h-7 w-7 text-primary" /> Events
-          </h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {events.map((event, i) => (
-              <Card
-                key={event.id}
-                className="glass overflow-hidden hover:glow-primary transition-shadow duration-300 opacity-0 animate-fade-in cursor-pointer"
-                style={{ animationDelay: `${i * 100}ms` }}
-                onClick={() => { setSelectedProduction({ ...event, type: 'event' }); setDrawerOpen(true); }}
-              >
-                <div className="aspect-[2/3] bg-secondary flex items-center justify-center relative overflow-hidden">
-                  {event.poster_url ? (
-                    <img src={event.poster_url} alt={event.title} className="w-full h-full object-cover" />
-                  ) : (
-                    <Sparkles className="h-16 w-16 text-muted-foreground" />
-                  )}
-                  <div className="absolute top-3 right-3 flex gap-1">
-                    {event.rating && <Badge>{event.rating}</Badge>}
-                    {event.genre && <Badge variant="secondary">{event.genre}</Badge>}
-                  </div>
-                  <div className="absolute top-3 left-3">
-                    <Badge variant="outline" className="bg-background/80 backdrop-blur-sm">
-                      {event.ticket_type === 'rsvp' ? 'RSVP' : event.ticket_type === 'info_only' ? 'Info' : 'Ticketed'}
-                    </Badge>
-                  </div>
-                </div>
-                <CardContent className="p-5">
-                  <h3 className="font-display text-xl font-bold mb-2">{event.title}</h3>
-                  {event.description && (
-                    <p className="text-muted-foreground text-sm mb-3 line-clamp-2">{event.description}</p>
-                  )}
-                  {event.ticket_type === 'rsvp' && event.rsvp_url ? (
-                    <Button variant="outline" size="sm" asChild>
-                      <a href={event.rsvp_url} target="_blank" rel="noopener noreferrer">RSVP Now</a>
-                    </Button>
-                  ) : event.showings.length > 0 ? (
-                    <div className="space-y-2">
-                      <p className="text-xs text-muted-foreground uppercase tracking-wider font-medium">Upcoming Showings</p>
-                      <div className="flex flex-wrap gap-2">
-                        {event.showings.slice(0, 4).map(showing => (
-                          <Button key={showing.id} variant="outline" size="sm" asChild>
-                            <Link to={`/showing/${showing.id}`}>
-                              <Calendar className="h-3 w-3 mr-1" />
-                              {format(new Date(showing.start_time), 'MMM d, h:mm a')}
-                            </Link>
-                          </Button>
-                        ))}
-                      </div>
-                    </div>
-                  ) : event.ticket_type !== 'info_only' ? (
-                    <p className="text-sm text-muted-foreground">No upcoming showings</p>
-                  ) : null}
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        </section>
-      )}
-
-      {/* Live Performances */}
-      {concerts.length > 0 && (
-        <section className="container py-16 px-4">
-          <h2 className="font-display text-3xl font-bold mb-8 flex items-center gap-2">
-            <Music className="h-7 w-7 text-primary" /> Live Performances
-          </h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {concerts.map((concert, i) => (
-              <Card
-                key={concert.id}
-                className="glass overflow-hidden hover:glow-primary transition-shadow duration-300 opacity-0 animate-fade-in cursor-pointer"
-                style={{ animationDelay: `${i * 100}ms` }}
-                onClick={() => { setSelectedProduction({ ...concert, type: 'concert' }); setDrawerOpen(true); }}
-              >
-                <div className="aspect-[2/3] bg-secondary flex items-center justify-center relative overflow-hidden">
-                  {concert.poster_url ? (
-                    <img src={concert.poster_url} alt={concert.title} className="w-full h-full object-cover" />
-                  ) : (
-                    <Music className="h-16 w-16 text-muted-foreground" />
-                  )}
-                  <div className="absolute top-3 right-3 flex gap-1">
-                    {concert.rating && <Badge>{concert.rating}</Badge>}
-                    {concert.genre && <Badge variant="secondary">{concert.genre}</Badge>}
-                  </div>
-                  {(concert as any).subcategory && (
-                    <div className="absolute top-3 left-3">
-                      <Badge variant="outline" className="bg-background/80 backdrop-blur-sm capitalize">
-                        {(concert as any).subcategory.replace(/_/g, ' ')}
-                      </Badge>
-                    </div>
-                  )}
-                </div>
-                <CardContent className="p-5">
-                  <h3 className="font-display text-xl font-bold mb-2">{concert.title}</h3>
-                  {concert.description && (
-                    <p className="text-muted-foreground text-sm mb-3 line-clamp-2">{concert.description}</p>
-                  )}
-                  {concert.showings.length > 0 ? (
-                    <div className="space-y-2">
-                      <p className="text-xs text-muted-foreground uppercase tracking-wider font-medium">Upcoming Showings</p>
-                      <div className="flex flex-wrap gap-2">
-                        {concert.showings.slice(0, 4).map(showing => (
-                          <Button key={showing.id} variant="outline" size="sm" asChild>
-                            <Link to={`/showing/${showing.id}`}>
-                              <Calendar className="h-3 w-3 mr-1" />
-                              {format(new Date(showing.start_time), 'MMM d, h:mm a')}
-                            </Link>
-                          </Button>
-                        ))}
-                      </div>
-                    </div>
-                  ) : (
-                    <p className="text-sm text-muted-foreground">No upcoming showings</p>
-                  )}
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        </section>
-      )}
-
-      {/* Info */}
-      <section className="container py-16 px-4">
-        <Card className="glass p-8 md:p-12">
-          <div className="grid md:grid-cols-2 gap-8">
-            <div>
-              <h2 className="font-display text-2xl font-bold mb-4">Visit Us</h2>
-              <div className="space-y-3 text-muted-foreground">
-                <p className="flex items-start gap-2">
-                  <MapPin className="h-5 w-5 text-primary mt-0.5 shrink-0" />
-                  508 S Main St, Moscow, ID 83843
-                </p>
-                <p>The Kenworthy Performing Arts Centre is a beloved community landmark in downtown Moscow, Idaho.</p>
-              </div>
-            </div>
-            <div>
-              <h2 className="font-display text-2xl font-bold mb-4">Ticket Info</h2>
-              <div className="space-y-2 text-muted-foreground">
-                <p>• Purchase tickets online or at the box office</p>
-                <p>• Present your QR code at the door</p>
-                <p>• Idaho sales tax of 6% applies</p>
-                <p>• All sales are final</p>
-              </div>
-            </div>
-          </div>
-        </Card>
-      </section>
+      </div>
 
       <ProductionDetailDrawer
         production={selectedProduction}
         open={drawerOpen}
         onOpenChange={setDrawerOpen}
       />
-
-      <footer className="border-t border-border py-8">
-        <div className="container text-center text-sm text-muted-foreground">
-          <p>© {new Date().getFullYear()} The Kenworthy Performing Arts Centre • Moscow, Idaho</p>
-        </div>
-      </footer>
-    </div>
+    </>
   );
 }
