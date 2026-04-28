@@ -33,6 +33,7 @@ export default function ConcertForm() {
   const [subcategory, setSubcategory] = useState<string>('concert');
   const [isActive, setIsActive] = useState(false);
   const [trailerUrl, setTrailerUrl] = useState('');
+  const [isFeatured, setIsFeatured] = useState(false);
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
@@ -49,6 +50,7 @@ export default function ConcertForm() {
           setSubcategory(data.subcategory || 'concert');
           setIsActive(data.is_active);
           setTrailerUrl(data.trailer_url || '');
+          setIsFeatured(!!data.is_featured);
         }
       });
     }
@@ -66,6 +68,7 @@ export default function ConcertForm() {
       subcategory: subcategory as any,
       is_active: isActive,
       trailer_url: trailerUrl || null,
+      is_featured: isFeatured,
     };
 
     const { error } = isEdit
@@ -125,6 +128,15 @@ export default function ConcertForm() {
             <div className="flex items-center gap-2">
               <Switch checked={isActive} onCheckedChange={setIsActive} />
               <Label>Active (visible to public)</Label>
+            </div>
+            <div className="flex items-start gap-3 rounded-md border border-accent/30 bg-accent/5 p-3">
+              <Switch checked={isFeatured} onCheckedChange={setIsFeatured} />
+              <div>
+                <Label>Curator's pick</Label>
+                <p className="font-serif text-xs text-muted-foreground mt-1">
+                  Highlight this on the homepage as the featured production. Doesn't change calendar order.
+                </p>
+              </div>
             </div>
             <Button type="submit" className="w-full" disabled={saving}>
               {saving ? 'Saving...' : isEdit ? 'Update Performance' : 'Create Performance'}

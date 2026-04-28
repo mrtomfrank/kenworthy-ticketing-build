@@ -17,6 +17,7 @@ export interface FeedItem {
   ticketType?: string;        // for events
   rsvpUrl?: string | null;
   curatorNote?: string | null;
+  isFeatured?: boolean;
 }
 
 const TYPE_ICON = {

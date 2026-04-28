@@ -30,8 +30,15 @@ export function EditorialCalendar({
   items: FeedItem[];
   onSelect?: (item: FeedItem) => void;
 }) {
-  const featured = items[0];
-  const rest = items.slice(1);
+  // Curator-controlled featured pick: prefer the earliest item flagged
+  // is_featured. If nothing is flagged, fall back to the first chronological
+  // item so the page never feels empty up top. The chronological calendar
+  // below always shows every item in order, including the featured one.
+  const featured =
+    items.find((i) => i.isFeatured) ?? items[0];
+  const rest = items.filter(
+    (i) => !(featured && i.id === featured.id),
+  );
 
   // Group rest by day
   const groups = new Map<string, FeedItem[]>();
@@ -63,7 +70,7 @@ export function EditorialCalendar({
         {featured && (
           <article className="mb-12">
             <p className="font-serif text-[11px] uppercase tracking-[0.25em] text-accent mb-3">
-              Featured · {dayLabel(featured.startTime)}
+              {featured.isFeatured ? "Curator's pick" : 'Featured'} · {dayLabel(featured.startTime)}
             </p>
             <button
               type="button"

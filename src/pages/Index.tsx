@@ -23,6 +23,7 @@ interface RawProduction {
   trailer_url: string | null;
   rating?: string | null;
   genre?: string | null;
+  is_featured?: boolean;
   // event-only
   ticket_type?: string;
   rsvp_url?: string | null;
@@ -60,6 +61,7 @@ function buildFeed(
       ticketType: prod.ticket_type,
       rsvpUrl: prod.rsvp_url,
       curatorNote: prod.description,
+      isFeatured: prod.is_featured ?? false,
     });
   }
 
@@ -85,6 +87,7 @@ function buildFeed(
         ticketType: row.ticket_type,
         rsvpUrl: row.rsvp_url,
         curatorNote: row.description,
+        isFeatured: row.is_featured ?? false,
       });
     }
   }
