@@ -52,7 +52,7 @@ export function BackstageTeaser() {
                   alt="Backstage — a speakeasy room inside the Kenworthy"
                   width={1920}
                   height={1920}
-                  className="absolute inset-0 h-full w-full object-contain drop-shadow-[0_8px_30px_rgba(0,0,0,0.6)]"
+                  className="absolute inset-0 h-full w-full object-contain [filter:drop-shadow(0_0_6px_hsl(333_90%_60%/0.85))_drop-shadow(0_0_18px_hsl(333_85%_55%/0.6))_drop-shadow(0_0_38px_hsl(333_80%_50%/0.45))_drop-shadow(0_8px_30px_rgba(0,0,0,0.6))]"
                   loading="lazy"
                   decoding="async"
                 />
