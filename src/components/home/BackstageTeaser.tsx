@@ -46,8 +46,11 @@ export function BackstageTeaser() {
               <img
                 src={backstageLogo}
                 alt="Backstage — a speakeasy room inside the Kenworthy"
-                className="relative w-[280px] md:w-[360px] drop-shadow-[0_8px_30px_rgba(0,0,0,0.6)] [transform:rotate(-2deg)]"
+                width={1920}
+                height={1920}
+                className="relative w-[280px] md:w-[360px] h-auto object-contain drop-shadow-[0_8px_30px_rgba(0,0,0,0.6)] [transform:rotate(-2deg)]"
                 loading="lazy"
+                decoding="async"
               />
             </div>
           </div>
