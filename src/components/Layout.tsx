@@ -98,7 +98,9 @@ export function Layout({ children }: { children: React.ReactNode }) {
             <img
               src={kenworthyWordmark}
               alt="The Kenworthy Performing Arts Centre"
-              className="h-10 w-auto mb-3"
+              width={1920}
+              height={453}
+              className="h-10 w-auto mb-3 object-contain"
             />
             <p className="font-serif italic text-muted-foreground">
               A century of stories, told one screening at a time.
