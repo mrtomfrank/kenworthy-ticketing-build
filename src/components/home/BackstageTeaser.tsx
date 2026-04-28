@@ -43,15 +43,20 @@ export function BackstageTeaser() {
                     'radial-gradient(circle, hsl(41 65% 56% / 0.25), transparent 70%)',
                 }}
               />
-              <img
-                src={backstageLogo}
-                alt="Backstage — a speakeasy room inside the Kenworthy"
-                width={1920}
-                height={1920}
-                className="relative w-[280px] md:w-[360px] h-auto object-contain drop-shadow-[0_8px_30px_rgba(0,0,0,0.6)] [transform:rotate(-2deg)]"
-                loading="lazy"
-                decoding="async"
-              />
+              <div
+                className="relative w-[280px] md:w-[360px] [transform:rotate(-2deg)]"
+                style={{ aspectRatio: '1 / 1' }}
+              >
+                <img
+                  src={backstageLogo}
+                  alt="Backstage — a speakeasy room inside the Kenworthy"
+                  width={1920}
+                  height={1920}
+                  className="absolute inset-0 h-full w-full object-contain drop-shadow-[0_8px_30px_rgba(0,0,0,0.6)]"
+                  loading="lazy"
+                  decoding="async"
+                />
+              </div>
             </div>
           </div>
 
