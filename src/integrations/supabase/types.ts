@@ -137,6 +137,7 @@ export type Database = {
           genre: string | null
           id: string
           is_active: boolean
+          is_featured: boolean
           poster_url: string | null
           rating: string | null
           rsvp_url: string | null
@@ -151,6 +152,7 @@ export type Database = {
           genre?: string | null
           id?: string
           is_active?: boolean
+          is_featured?: boolean
           poster_url?: string | null
           rating?: string | null
           rsvp_url?: string | null
@@ -165,6 +167,7 @@ export type Database = {
           genre?: string | null
           id?: string
           is_active?: boolean
+          is_featured?: boolean
           poster_url?: string | null
           rating?: string | null
           rsvp_url?: string | null
@@ -303,6 +306,7 @@ export type Database = {
           genre: string | null
           id: string
           is_active: boolean
+          is_featured: boolean
           poster_url: string | null
           rating: string | null
           subcategory: Database["public"]["Enums"]["live_performance_subcategory"]
@@ -316,6 +320,7 @@ export type Database = {
           genre?: string | null
           id?: string
           is_active?: boolean
+          is_featured?: boolean
           poster_url?: string | null
           rating?: string | null
           subcategory?: Database["public"]["Enums"]["live_performance_subcategory"]
@@ -329,6 +334,7 @@ export type Database = {
           genre?: string | null
           id?: string
           is_active?: boolean
+          is_featured?: boolean
           poster_url?: string | null
           rating?: string | null
           subcategory?: Database["public"]["Enums"]["live_performance_subcategory"]
@@ -346,6 +352,7 @@ export type Database = {
           genre: string | null
           id: string
           is_active: boolean
+          is_featured: boolean
           poster_url: string | null
           rating: string | null
           title: string
@@ -359,6 +366,7 @@ export type Database = {
           genre?: string | null
           id?: string
           is_active?: boolean
+          is_featured?: boolean
           poster_url?: string | null
           rating?: string | null
           title: string
@@ -372,6 +380,7 @@ export type Database = {
           genre?: string | null
           id?: string
           is_active?: boolean
+          is_featured?: boolean
           poster_url?: string | null
           rating?: string | null
           title?: string
