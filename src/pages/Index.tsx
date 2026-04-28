@@ -4,6 +4,7 @@ import { ProductionDetailDrawer } from '@/components/ProductionDetailDrawer';
 import { TrailerFeed, type FeedItem } from '@/components/home/TrailerFeed';
 import { EditorialCalendar } from '@/components/home/EditorialCalendar';
 import { BackstageTeaser } from '@/components/home/BackstageTeaser';
+import { ConcessionsPreview } from '@/components/home/ConcessionsPreview';
 
 type ProductionType = 'movie' | 'event' | 'concert';
 
@@ -193,6 +194,10 @@ export default function Index() {
           </div>
         </div>
       </div>
+
+      {/* Concessions menu — pulled live from the editable concession_items
+          table, so the admin Concessions tab is the single source of truth. */}
+      <ConcessionsPreview />
 
       {/* A quiet whisper at the bottom of the page — the speakeasy room
           tucked inside the Kenworthy. On desktop the split-scroll fills the

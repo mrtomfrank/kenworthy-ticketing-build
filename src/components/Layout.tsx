@@ -2,7 +2,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/lib/auth';
 import { Button } from '@/components/ui/button';
 import { Film, Ticket, LogOut, Shield, User, CreditCard, Home, MapPin, Mail, Phone } from 'lucide-react';
-import kenworthyWordmark from '@/assets/kenworthy-logo.svg';
+import kenworthyFullLogo from '@/assets/kenworthy-full-logo.png';
 
 export function Layout({ children }: { children: React.ReactNode }) {
   const { user, isAdmin, isHost, signOut } = useAuth();
@@ -96,11 +96,11 @@ export function Layout({ children }: { children: React.ReactNode }) {
         <div className="container py-10 grid gap-8 md:grid-cols-3 text-sm">
           <div>
             <img
-              src={kenworthyWordmark}
+              src={kenworthyFullLogo}
               alt="The Kenworthy Performing Arts Centre"
               width={1920}
               height={453}
-              className="h-10 w-auto mb-3 object-contain"
+              className="h-16 w-auto mb-3 object-contain [filter:invert(1)_brightness(1.05)]"
             />
             <p className="font-serif italic text-muted-foreground">
               A century of stories, told one screening at a time.
