@@ -1,4 +1,4 @@
-import backstageLogo from '@/assets/backstage-logo.jpg';
+import backstageLogo from '@/assets/backstage-logo.png';
 
 /**
  * A quiet, speakeasy-styled teaser for the Backstage venue — the
