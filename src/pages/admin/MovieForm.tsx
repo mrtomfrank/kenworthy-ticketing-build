@@ -25,6 +25,7 @@ export default function MovieForm() {
   const [genre, setGenre] = useState('');
   const [isActive, setIsActive] = useState(true);
   const [trailerUrl, setTrailerUrl] = useState('');
+  const [isFeatured, setIsFeatured] = useState(false);
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
@@ -41,6 +42,7 @@ export default function MovieForm() {
           setGenre(data.genre || '');
           setIsActive(data.is_active);
           setTrailerUrl(data.trailer_url || '');
+          setIsFeatured(!!data.is_featured);
         }
       });
     }
@@ -59,6 +61,7 @@ export default function MovieForm() {
         genre: genre || null,
         is_active: isActive,
         trailer_url: trailerUrl || null,
+        is_featured: isFeatured,
       };
 
       const { error } = isEdit
@@ -119,6 +122,15 @@ export default function MovieForm() {
             <div className="flex items-center gap-2">
               <Switch checked={isActive} onCheckedChange={setIsActive} />
               <Label>Active</Label>
+            </div>
+            <div className="flex items-start gap-3 rounded-md border border-accent/30 bg-accent/5 p-3">
+              <Switch checked={isFeatured} onCheckedChange={setIsFeatured} />
+              <div>
+                <Label>Curator's pick</Label>
+                <p className="font-serif text-xs text-muted-foreground mt-1">
+                  Highlight this on the homepage as the featured production. Doesn't change calendar order.
+                </p>
+              </div>
             </div>
             <Button type="submit" className="w-full" disabled={saving}>
               {saving ? 'Saving...' : isEdit ? 'Update Movie' : 'Create Movie'}
