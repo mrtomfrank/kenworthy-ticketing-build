@@ -9,6 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Film, Plus, Calendar, Ticket, Edit, Trash2, ShoppingCart, ScanLine, Music, PartyPopper, BarChart3, UtensilsCrossed, CreditCard, Download, Users } from 'lucide-react';
 import AnalyticsTab from '@/components/admin/AnalyticsTab';
 import ConcessionItemsTab from '@/components/admin/ConcessionItemsTab';
+import ConcessionMenusTab from '@/components/admin/ConcessionMenusTab';
 import FilmPassesTab from '@/components/admin/FilmPassesTab';
 import HostManagementTab from '@/components/admin/HostManagementTab';
 import { format } from 'date-fns';
@@ -298,7 +299,18 @@ export default function AdminDashboard() {
 
         {/* Concessions Tab */}
         <TabsContent value="concessions">
-          <ConcessionItemsTab />
+          <Tabs defaultValue="items" className="space-y-4">
+            <TabsList>
+              <TabsTrigger value="items">Items & combos</TabsTrigger>
+              <TabsTrigger value="menus">Menu PDFs</TabsTrigger>
+            </TabsList>
+            <TabsContent value="items">
+              <ConcessionItemsTab />
+            </TabsContent>
+            <TabsContent value="menus">
+              <ConcessionMenusTab />
+            </TabsContent>
+          </Tabs>
         </TabsContent>
 
         {/* Film Passes Tab */}

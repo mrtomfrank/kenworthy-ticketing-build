@@ -89,6 +89,39 @@ export type Database = {
         }
         Relationships: []
       }
+      concession_menus: {
+        Row: {
+          created_at: string
+          file_path: string
+          id: string
+          is_active: boolean
+          label: string
+          notes: string | null
+          updated_at: string
+          uploaded_by: string | null
+        }
+        Insert: {
+          created_at?: string
+          file_path: string
+          id?: string
+          is_active?: boolean
+          label: string
+          notes?: string | null
+          updated_at?: string
+          uploaded_by?: string | null
+        }
+        Update: {
+          created_at?: string
+          file_path?: string
+          id?: string
+          is_active?: boolean
+          label?: string
+          notes?: string | null
+          updated_at?: string
+          uploaded_by?: string | null
+        }
+        Relationships: []
+      }
       concession_sale_items: {
         Row: {
           concession_item_id: string
