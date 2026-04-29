@@ -27,11 +27,13 @@ export function ConcessionsPreview() {
   const [items, setItems] = useState<ConcessionItem[]>([]);
   const [comboChildren, setComboChildren] = useState<ComboChildRow[]>([]);
   const [loading, setLoading] = useState(true);
+  const [activeMenuUrl, setActiveMenuUrl] = useState<string | null>(null);
+  const [activeMenuLabel, setActiveMenuLabel] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
     (async () => {
-      const [{ data: itemData }, { data: childData }] = await Promise.all([
+      const [{ data: itemData }, { data: childData }, { data: menuData }] = await Promise.all([
         supabase
           .from('concession_items')
           .select('id, name, price, category, is_combo')
@@ -42,10 +44,24 @@ export function ConcessionsPreview() {
           .from('concession_combo_items')
           .select('combo_id, quantity, child:concession_items!concession_combo_items_child_item_id_fkey(id, name, price)')
           .order('display_order'),
+        supabase
+          .from('concession_menus')
+          .select('label, file_path')
+          .eq('is_active', true)
+          .maybeSingle(),
       ]);
       if (cancelled) return;
       setItems((itemData as ConcessionItem[]) || []);
       setComboChildren((childData as ComboChildRow[]) || []);
+      if (menuData?.file_path) {
+        const { data: signed } = await supabase.storage
+          .from('concession-menus')
+          .createSignedUrl(menuData.file_path, 60 * 60);
+        if (!cancelled && signed?.signedUrl) {
+          setActiveMenuUrl(signed.signedUrl);
+          setActiveMenuLabel(menuData.label);
+        }
+      }
       setLoading(false);
     })();
     return () => { cancelled = true; };
@@ -160,7 +176,19 @@ export function ConcessionsPreview() {
           </div>
         )}
 
-        <p className="mt-10 text-center font-serif italic text-xs text-muted-foreground/70">
+        {activeMenuUrl && (
+          <div className="mt-10 text-center">
+            <a
+              href={activeMenuUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-block font-serif text-sm text-accent underline underline-offset-4 hover:text-primary transition-colors"
+            >
+              View full printed menu{activeMenuLabel ? ` — ${activeMenuLabel}` : ''} (PDF)
+            </a>
+          </div>
+        )}
+        <p className="mt-6 text-center font-serif italic text-xs text-muted-foreground/70">
           Prices subject to change. Idaho sales tax added at the register.
         </p>
       </div>
