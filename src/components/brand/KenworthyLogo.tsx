@@ -10,10 +10,18 @@ import { cn } from '@/lib/utils';
  * class on <html> for sites that toggle themes.
  */
 type LogoTone = 'on-dark' | 'on-light' | 'auto';
+type LogoSize = 'header' | 'footer' | 'hero' | 'inline' | 'custom';
 
 interface KenworthyLogoProps extends Omit<React.ImgHTMLAttributes<HTMLImageElement>, 'src' | 'alt'> {
   tone?: LogoTone;
   alt?: string;
+  /**
+   * Responsive size preset. Each preset declares mobile-first heights
+   * with sm/md/lg step-ups so the logo reads crisply at every breakpoint
+   * without callers having to remember the scale.
+   * Use `'custom'` and pass your own height classes via `className`.
+   */
+  size?: LogoSize;
 }
 
 const TONE_CLASS: Record<LogoTone, string> = {
@@ -23,8 +31,22 @@ const TONE_CLASS: Record<LogoTone, string> = {
   auto: 'dark:[filter:invert(1)_brightness(1.05)]',
 };
 
+const SIZE_CLASS: Record<LogoSize, string> = {
+  // Sticky header — must clear the 68px bar with breathing room.
+  header: 'h-8 sm:h-9 md:h-10 lg:h-11',
+  // Footer brand block — slightly larger, anchors the column.
+  footer: 'h-12 sm:h-14 md:h-16',
+  // Hero / splash placements — dominant but not overwhelming on phones.
+  hero: 'h-16 sm:h-20 md:h-28 lg:h-36',
+  // Inline w/ body copy — receipts, emails, small cards.
+  inline: 'h-6 sm:h-7',
+  // Caller controls height entirely.
+  custom: '',
+};
+
 export function KenworthyLogo({
   tone = 'on-dark',
+  size = 'custom',
   className,
   alt = 'The Kenworthy Performing Arts Centre',
   ...rest
@@ -37,7 +59,7 @@ export function KenworthyLogo({
       height={453}
       loading="lazy"
       decoding="async"
-      className={cn('w-auto object-contain', TONE_CLASS[tone], className)}
+      className={cn('w-auto object-contain', SIZE_CLASS[size], TONE_CLASS[tone], className)}
       {...rest}
     />
   );
