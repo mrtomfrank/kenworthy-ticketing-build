@@ -6,6 +6,13 @@ interface ConcessionItem {
   name: string;
   price: number;
   category: string;
+  is_combo: boolean;
+}
+
+interface ComboChildRow {
+  combo_id: string;
+  quantity: number;
+  child: { id: string; name: string; price: number } | null;
 }
 
 /**
@@ -18,19 +25,27 @@ interface ConcessionItem {
  */
 export function ConcessionsPreview() {
   const [items, setItems] = useState<ConcessionItem[]>([]);
+  const [comboChildren, setComboChildren] = useState<ComboChildRow[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     let cancelled = false;
     (async () => {
-      const { data } = await supabase
-        .from('concession_items')
-        .select('id, name, price, category')
-        .eq('is_active', true)
-        .order('category')
-        .order('price');
+      const [{ data: itemData }, { data: childData }] = await Promise.all([
+        supabase
+          .from('concession_items')
+          .select('id, name, price, category, is_combo')
+          .eq('is_active', true)
+          .order('category')
+          .order('price'),
+        supabase
+          .from('concession_combo_items')
+          .select('combo_id, quantity, child:concession_items!concession_combo_items_child_item_id_fkey(id, name, price)')
+          .order('display_order'),
+      ]);
       if (cancelled) return;
-      setItems((data as ConcessionItem[]) || []);
+      setItems((itemData as ConcessionItem[]) || []);
+      setComboChildren((childData as ComboChildRow[]) || []);
       setLoading(false);
     })();
     return () => { cancelled = true; };
@@ -38,16 +53,20 @@ export function ConcessionsPreview() {
 
   if (loading || items.length === 0) return null;
 
-  // Group by category, preserving the order categories first appear.
-  const grouped = items.reduce<Record<string, ConcessionItem[]>>((acc, it) => {
+  // Split combos out by the flag (not by category name) so admins can
+  // categorize combos however they like and they still get the special block.
+  const combos = items.filter((i) => i.is_combo);
+  const regulars = items.filter((i) => !i.is_combo);
+
+  // Group regular items by category, preserving order of first appearance.
+  const grouped = regulars.reduce<Record<string, ConcessionItem[]>>((acc, it) => {
     (acc[it.category] ||= []).push(it);
     return acc;
   }, {});
-  const categories = Object.keys(grouped);
+  const regularCategories = Object.keys(grouped).filter((c) => c !== 'Combos');
 
-  // Combos are special — surface them at the bottom in a contrasting block.
-  const combos = grouped['Combos'] || [];
-  const regularCategories = categories.filter((c) => c !== 'Combos');
+  const childrenFor = (comboId: string) =>
+    comboChildren.filter((c) => c.combo_id === comboId && c.child);
 
   return (
     <section
@@ -107,22 +126,36 @@ export function ConcessionsPreview() {
             <h3 className="font-display text-xl tracking-wide text-accent mb-4">
               Combos
             </h3>
-            <ul className="space-y-2.5">
-              {combos.map((it) => (
-                <li
-                  key={it.id}
-                  className="flex items-baseline gap-3 font-serif text-foreground"
-                >
-                  <span className="flex-1">{it.name}</span>
-                  <span
-                    aria-hidden
-                    className="flex-[0.4] border-b border-dotted border-muted-foreground/40 translate-y-[-4px]"
-                  />
-                  <span className="tabular-nums text-accent font-medium">
-                    ${Number(it.price).toFixed(2)}
-                  </span>
-                </li>
-              ))}
+            <ul className="space-y-5">
+              {combos.map((it) => {
+                const kids = childrenFor(it.id);
+                return (
+                  <li key={it.id} className="font-serif text-foreground">
+                    <div className="flex items-baseline gap-3">
+                      <span className="flex-1 font-medium">{it.name}</span>
+                      <span
+                        aria-hidden
+                        className="flex-[0.4] border-b border-dotted border-muted-foreground/40 translate-y-[-4px]"
+                      />
+                      <span className="tabular-nums text-accent font-medium">
+                        ${Number(it.price).toFixed(2)}
+                      </span>
+                    </div>
+                    {kids.length > 0 && (
+                      <p className="mt-1 text-sm italic text-muted-foreground">
+                        Includes{' '}
+                        {kids
+                          .map((k) =>
+                            k.quantity > 1
+                              ? `${k.quantity} ${k.child!.name}`
+                              : k.child!.name,
+                          )
+                          .join(', ')}
+                      </p>
+                    )}
+                  </li>
+                );
+              })}
             </ul>
           </div>
         )}
