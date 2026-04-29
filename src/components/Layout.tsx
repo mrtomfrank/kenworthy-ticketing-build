@@ -24,7 +24,8 @@ export function Layout({ children }: { children: React.ReactNode }) {
         <div className="container flex h-[68px] items-center justify-between gap-4">
           <Link to="/" className="flex items-center group" aria-label="The Kenworthy — home">
             <KenworthyLogo
-              className="h-11 transition-opacity group-hover:opacity-80"
+              size="header"
+              className="transition-opacity group-hover:opacity-80"
               loading="eager"
             />
           </Link>
@@ -83,7 +84,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
       <footer className="mt-auto border-t border-accent/20 bg-card/40">
         <div className="container py-10 grid gap-8 md:grid-cols-3 text-sm">
           <div>
-            <KenworthyLogo className="h-16 mb-3" />
+            <KenworthyLogo size="footer" className="mb-3" />
             <p className="font-serif italic text-muted-foreground">
               A century of stories, told one screening at a time.
             </p>
