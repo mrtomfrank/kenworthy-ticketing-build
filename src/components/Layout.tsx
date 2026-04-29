@@ -2,7 +2,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/lib/auth';
 import { Button } from '@/components/ui/button';
 import { Ticket, LogOut, Shield, User, CreditCard, Home, MapPin, Mail, Phone } from 'lucide-react';
-import kenworthyFullLogo from '@/assets/kenworthy-full-logo.png';
+import { KenworthyLogo } from '@/components/brand/KenworthyLogo';
 
 export function Layout({ children }: { children: React.ReactNode }) {
   const { user, isAdmin, isHost, signOut } = useAuth();
@@ -23,12 +23,9 @@ export function Layout({ children }: { children: React.ReactNode }) {
       <header className="sticky top-0 z-50 glass border-b border-accent/20">
         <div className="container flex h-[68px] items-center justify-between gap-4">
           <Link to="/" className="flex items-center group" aria-label="The Kenworthy — home">
-            <img
-              src={kenworthyFullLogo}
-              alt="The Kenworthy Performing Arts Centre"
-              width={1920}
-              height={453}
-              className="h-11 w-auto object-contain [filter:invert(1)_brightness(1.05)] transition-opacity group-hover:opacity-80"
+            <KenworthyLogo
+              className="h-11 transition-opacity group-hover:opacity-80"
+              loading="eager"
             />
           </Link>
 
@@ -86,13 +83,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
       <footer className="mt-auto border-t border-accent/20 bg-card/40">
         <div className="container py-10 grid gap-8 md:grid-cols-3 text-sm">
           <div>
-            <img
-              src={kenworthyFullLogo}
-              alt="The Kenworthy Performing Arts Centre"
-              width={1920}
-              height={453}
-              className="h-16 w-auto mb-3 object-contain [filter:invert(1)_brightness(1.05)]"
-            />
+            <KenworthyLogo className="h-16 mb-3" />
             <p className="font-serif italic text-muted-foreground">
               A century of stories, told one screening at a time.
             </p>
