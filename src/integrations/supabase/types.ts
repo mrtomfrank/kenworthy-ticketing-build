@@ -14,12 +14,55 @@ export type Database = {
   }
   public: {
     Tables: {
+      concession_combo_items: {
+        Row: {
+          child_item_id: string
+          combo_id: string
+          created_at: string
+          display_order: number
+          id: string
+          quantity: number
+        }
+        Insert: {
+          child_item_id: string
+          combo_id: string
+          created_at?: string
+          display_order?: number
+          id?: string
+          quantity?: number
+        }
+        Update: {
+          child_item_id?: string
+          combo_id?: string
+          created_at?: string
+          display_order?: number
+          id?: string
+          quantity?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "concession_combo_items_child_item_id_fkey"
+            columns: ["child_item_id"]
+            isOneToOne: false
+            referencedRelation: "concession_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "concession_combo_items_combo_id_fkey"
+            columns: ["combo_id"]
+            isOneToOne: false
+            referencedRelation: "concession_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       concession_items: {
         Row: {
           category: string
           created_at: string
           id: string
           is_active: boolean
+          is_combo: boolean
           name: string
           price: number
           updated_at: string
@@ -29,6 +72,7 @@ export type Database = {
           created_at?: string
           id?: string
           is_active?: boolean
+          is_combo?: boolean
           name: string
           price?: number
           updated_at?: string
@@ -38,6 +82,7 @@ export type Database = {
           created_at?: string
           id?: string
           is_active?: boolean
+          is_combo?: boolean
           name?: string
           price?: number
           updated_at?: string
