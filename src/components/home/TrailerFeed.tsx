@@ -114,10 +114,22 @@ export function TrailerFeed({ items, onSelect }: { items: FeedItem[]; onSelect?:
                 if (el) slideRefs.current.set(item.id, el);
                 else slideRefs.current.delete(item.id);
               }}
-              className="relative h-full min-h-[560px] w-full overflow-hidden bg-black"
+              className="relative w-full overflow-hidden bg-black flex items-center justify-center min-h-[560px]"
             >
               {/* Media layer */}
-              <div className="absolute inset-0">
+              {/* Blurred backdrop fills the rail edge-to-edge so the
+                  contained poster has something to sit against without
+                  being stretched. */}
+              {item.posterUrl && !(trailer && !reduceMotion) && (
+                <img
+                  src={item.posterUrl}
+                  alt=""
+                  aria-hidden="true"
+                  className="absolute inset-0 h-full w-full object-cover scale-110 blur-2xl opacity-40"
+                />
+              )}
+
+              <div className="relative w-full">
                 {trailer && !reduceMotion ? (
                   trailer.kind === 'file' ? (
                     <video
@@ -128,37 +140,28 @@ export function TrailerFeed({ items, onSelect }: { items: FeedItem[]; onSelect?:
                       loop
                       playsInline
                       poster={item.posterUrl ?? undefined}
-                      className="h-full w-full object-cover"
+                      className="w-full h-auto max-h-[80vh] object-contain bg-black"
                     />
                   ) : (
-                    <iframe
-                      key={`${item.id}-${isActive}-${muted}`}
-                      src={trailer.src}
-                      title={`${item.title} trailer`}
-                      allow="autoplay; encrypted-media; picture-in-picture"
-                      allowFullScreen
-                      className="h-full w-full pointer-events-none"
-                    />
+                    <div className="w-full aspect-video bg-black">
+                      <iframe
+                        key={`${item.id}-${isActive}-${muted}`}
+                        src={trailer.src}
+                        title={`${item.title} trailer`}
+                        allow="autoplay; encrypted-media; picture-in-picture"
+                        allowFullScreen
+                        className="h-full w-full pointer-events-none"
+                      />
+                    </div>
                   )
                 ) : item.posterUrl ? (
-                  <>
-                    {/* Blurred backdrop fills the rail without distorting the
-                        actual artwork. The poster itself sits on top, contained
-                        by width so nothing gets stretched or cropped. */}
-                    <img
-                      src={item.posterUrl}
-                      alt=""
-                      aria-hidden="true"
-                      className="absolute inset-0 h-full w-full object-cover scale-110 blur-2xl opacity-50"
-                    />
-                    <img
-                      src={item.posterUrl}
-                      alt={item.title}
-                      className="relative h-full w-full object-contain"
-                    />
-                  </>
+                  <img
+                    src={item.posterUrl}
+                    alt={item.title}
+                    className="relative block w-full h-auto max-h-[85vh] object-contain mx-auto"
+                  />
                 ) : (
-                  <div className="h-full w-full flex items-center justify-center bg-secondary">
+                  <div className="h-[60vh] w-full flex items-center justify-center bg-secondary">
                     <Icon className="h-20 w-20 text-muted-foreground" />
                   </div>
                 )}
