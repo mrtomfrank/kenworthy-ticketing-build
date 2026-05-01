@@ -21,6 +21,7 @@ import StaffPOS from "./pages/admin/StaffPOS";
 import TicketScanner from "./pages/admin/TicketScanner";
 import ResetPassword from "./pages/ResetPassword";
 import HostDashboard from "./pages/admin/HostDashboard";
+import Sponsors from "./pages/Sponsors";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -55,6 +56,7 @@ const App = () => (
               <Route path="/admin/pos" element={<StaffPOS />} />
               <Route path="/admin/scanner" element={<TicketScanner />} />
               <Route path="/host" element={<HostDashboard />} />
+              <Route path="/sponsors" element={<Sponsors />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </Layout>
