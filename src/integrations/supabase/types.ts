@@ -768,6 +768,8 @@ export type Database = {
           age_range: string | null
           applicant_name: string
           arrival_time: string | null
+          contract_data: Json
+          contract_status: string
           created_at: string
           departure_time: string | null
           email: string
@@ -808,6 +810,8 @@ export type Database = {
           age_range?: string | null
           applicant_name: string
           arrival_time?: string | null
+          contract_data?: Json
+          contract_status?: string
           created_at?: string
           departure_time?: string | null
           email: string
@@ -848,6 +852,8 @@ export type Database = {
           age_range?: string | null
           applicant_name?: string
           arrival_time?: string | null
+          contract_data?: Json
+          contract_status?: string
           created_at?: string
           departure_time?: string | null
           email?: string
@@ -1240,6 +1246,57 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      get_rental_request_by_token: {
+        Args: { p_token: string }
+        Returns: {
+          accessibility_requirements: string | null
+          activity_order: string | null
+          admin_notes: string | null
+          age_range: string | null
+          applicant_name: string
+          arrival_time: string | null
+          contract_data: Json
+          contract_status: string
+          created_at: string
+          departure_time: string | null
+          email: string
+          equipment: Json | null
+          event_description: string | null
+          event_end_time: string | null
+          event_start_time: string | null
+          event_title: string
+          expected_guests: number | null
+          id: string
+          invite_token: string | null
+          is_public: boolean | null
+          is_ticketed: boolean | null
+          kenworthy_provides_media: boolean | null
+          linked_event_id: string | null
+          marquee_text: string | null
+          media_notes: string | null
+          needs_digital_ticketing: boolean | null
+          organization_name: string | null
+          phone: string | null
+          proposed_date: string | null
+          renter_provides_media: boolean | null
+          secondary_contact_email: string | null
+          secondary_contact_name: string | null
+          secondary_contact_phone: string | null
+          special_needs: string | null
+          status: Database["public"]["Enums"]["rental_request_status"]
+          submitted_at: string
+          updated_at: string
+          venue_area: string | null
+          wants_beer_wine: boolean | null
+          wants_concessions: boolean | null
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "rental_requests"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]

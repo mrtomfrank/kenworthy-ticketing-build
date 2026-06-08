@@ -7,7 +7,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Copy, ExternalLink, Trash2, Eye } from 'lucide-react';
+import { Copy, ExternalLink, Trash2, Eye, FileText, Link2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 
@@ -127,9 +127,22 @@ export default function RentalRequestsTab() {
                     Submitted {format(new Date(r.submitted_at), 'MMM d, yyyy h:mm a')}
                   </p>
                 </div>
-                <Button size="sm" variant="outline" onClick={() => setOpen(r)}>
-                  <Eye className="h-4 w-4 mr-1" /> View
-                </Button>
+                <div className="flex gap-1 shrink-0">
+                  <Button size="sm" variant="outline" asChild title="Open contract">
+                    <a href={`/contract/${r.invite_token}`} target="_blank" rel="noreferrer">
+                      <FileText className="h-4 w-4 mr-1" /> Contract
+                    </a>
+                  </Button>
+                  <Button size="sm" variant="ghost" title="Copy contract link for renter" onClick={() => {
+                    navigator.clipboard.writeText(`${window.location.origin}/contract/${r.invite_token}`);
+                    toast.success('Renter contract link copied');
+                  }}>
+                    <Link2 className="h-4 w-4" />
+                  </Button>
+                  <Button size="sm" variant="outline" onClick={() => setOpen(r)}>
+                    <Eye className="h-4 w-4 mr-1" /> Details
+                  </Button>
+                </div>
               </CardContent>
             </Card>
           ))}
