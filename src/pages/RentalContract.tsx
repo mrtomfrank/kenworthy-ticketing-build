@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent } from '@/components/ui/card';
-import { Printer, Save } from 'lucide-react';
+import { Printer, Save, ShieldCheck, BadgeCheck } from 'lucide-react';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 // @ts-ignore - no types
@@ -47,6 +47,7 @@ export default function RentalContract() {
   const [data, setData] = useState<ContractData>(DEFAULTS);
   const [saving, setSaving] = useState(false);
   const [exporting, setExporting] = useState(false);
+  const [signing, setSigning] = useState(false);
 
   useEffect(() => {
     (async () => {
@@ -106,6 +107,70 @@ export default function RentalContract() {
     }
   }
 
+  async function renderPdfBlob(): Promise<Blob> {
+    const el = document.getElementById('contract-body');
+    if (!el) throw new Error('Contract body not found');
+    const opts = {
+      margin: [0.5, 0.5, 0.5, 0.5],
+      image: { type: 'jpeg', quality: 0.95 },
+      html2canvas: { scale: 2, useCORS: true, backgroundColor: '#ffffff' },
+      jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' },
+    };
+    return await html2pdf().set(opts as any).from(el).outputPdf('blob');
+  }
+
+  function blobToBase64(blob: Blob): Promise<string> {
+    return new Promise((resolve, reject) => {
+      const r = new FileReader();
+      r.onloadend = () => {
+        const s = String(r.result || '');
+        resolve(s.substring(s.indexOf(',') + 1));
+      };
+      r.onerror = reject;
+      r.readAsDataURL(blob);
+    });
+  }
+
+  async function signAndDownload() {
+    if (!request) return;
+    setSigning(true);
+    try {
+      // Save latest contract data first so the signed PDF reflects it
+      await supabase.from('rental_requests').update({ contract_data: data as any }).eq('id', request.id);
+
+      const blob = await renderPdfBlob();
+      const pdf_base64 = await blobToBase64(blob);
+      const { data: resp, error } = await supabase.functions.invoke('sign-contract', {
+        body: { request_id: request.id, pdf_base64 },
+      });
+      if (error) throw error;
+      if ((resp as any)?.error) throw new Error((resp as any).error);
+
+      const signedB64 = (resp as any).pdf_base64 as string;
+      const bin = atob(signedB64);
+      const bytes = new Uint8Array(bin.length);
+      for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+      const signedBlob = new Blob([bytes], { type: 'application/pdf' });
+      const url = URL.createObjectURL(signedBlob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `Kenworthy-Contract-${(request.event_title || 'rental').replace(/[^a-z0-9]+/gi, '-')}-signed.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+
+      toast.success('Contract signed and downloaded');
+      // Refresh local request copy
+      const { data: rows } = await supabase.rpc('get_rental_request_by_token', { p_token: token! });
+      if (rows?.[0]) setRequest(rows[0]);
+    } catch (e: any) {
+      toast.error(e?.message || 'Failed to sign contract');
+    } finally {
+      setSigning(false);
+    }
+  }
+
   if (loading) return <div className="container py-16 text-center text-muted-foreground">Loading…</div>;
   if (!request) return <div className="container py-16 text-center text-muted-foreground">Contract not found.</div>;
 
@@ -132,8 +197,11 @@ export default function RentalContract() {
               <Button size="sm" onClick={save} disabled={saving}>
                 <Save className="h-4 w-4 mr-1" /> {saving ? 'Saving…' : 'Save'}
               </Button>
-              <Button size="sm" onClick={exportPdf} disabled={exporting}>
-                <Printer className="h-4 w-4 mr-1" /> {exporting ? 'Exporting…' : 'Export PDF'}
+              <Button size="sm" variant="outline" onClick={exportPdf} disabled={exporting}>
+                <Printer className="h-4 w-4 mr-1" /> {exporting ? 'Exporting…' : 'Draft PDF'}
+              </Button>
+              <Button size="sm" onClick={signAndDownload} disabled={signing}>
+                <ShieldCheck className="h-4 w-4 mr-1" /> {signing ? 'Signing…' : 'Sign & Download'}
               </Button>
               <Button size="sm" variant="outline" onClick={() => window.print()}>
                 <Printer className="h-4 w-4 mr-1" /> Print / PDF
