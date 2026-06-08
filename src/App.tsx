@@ -23,6 +23,7 @@ import ResetPassword from "./pages/ResetPassword";
 import HostDashboard from "./pages/admin/HostDashboard";
 import Sponsors from "./pages/Sponsors";
 import NotFound from "./pages/NotFound";
+import HistoryPage from "./pages/History";
 
 const queryClient = new QueryClient();
 
@@ -57,6 +58,7 @@ const App = () => (
               <Route path="/admin/scanner" element={<TicketScanner />} />
               <Route path="/host" element={<HostDashboard />} />
               <Route path="/sponsors" element={<Sponsors />} />
+              <Route path="/history" element={<HistoryPage />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </Layout>

@@ -12,6 +12,7 @@ import { Film, Calendar, Clock, DollarSign, Check, Minus, Plus, MapPin, Sparkles
 import { SeatMap } from '@/components/SeatMap';
 import { GuestCheckoutForm } from '@/components/GuestCheckoutForm';
 import { type Seat, type PriceTier, TAX_RATE, buildTicketRows, computeOrderTotals, computeLineItemTotals, type TicketLineItem } from '@/lib/booking';
+import { PreviouslyScreened } from '@/components/PreviouslyScreened';
 
 type ProductionType = 'movie' | 'event' | 'concert';
 
@@ -383,6 +384,9 @@ export default function Showing() {
                 </span>
               )}
             </div>
+            {productionType === 'movie' && showing?.movie_id && (
+              <PreviouslyScreened movieId={showing.movie_id} />
+            )}
           </div>
         </div>
       </div>
