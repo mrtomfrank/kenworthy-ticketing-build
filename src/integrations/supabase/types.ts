@@ -328,6 +328,227 @@ export type Database = {
         }
         Relationships: []
       }
+      financial_entries: {
+        Row: {
+          adult: number | null
+          attendance: number | null
+          box_office: number | null
+          box_tax: number | null
+          check_status: string | null
+          child: number | null
+          con_avg: number | null
+          concession_tax: number | null
+          concessions: number | null
+          created_at: string
+          distributor: string | null
+          entry_date: string | null
+          event_name: string | null
+          fee_terms: string | null
+          format: string | null
+          free: number | null
+          id: string
+          is_month_total: boolean
+          kfs: number | null
+          licensing: number | null
+          matched_movie_id: string | null
+          matched_showing_id: string | null
+          merch: number | null
+          net: number | null
+          net_plus_pass: number | null
+          notes: string | null
+          online_mkt: number | null
+          other_fees: number | null
+          pass_amount: number | null
+          passes: number | null
+          print_mkt: number | null
+          raw_row: Json | null
+          rental: number | null
+          sales_tax: number | null
+          series: string | null
+          shipping: number | null
+          source_month: string | null
+          source_year: number
+          sponsorship: number | null
+          square_fee: number | null
+          staff: number | null
+          supply: number | null
+          total_expense: number | null
+          total_income: number | null
+          updated_at: string
+          utilities: number | null
+          weekday: string | null
+        }
+        Insert: {
+          adult?: number | null
+          attendance?: number | null
+          box_office?: number | null
+          box_tax?: number | null
+          check_status?: string | null
+          child?: number | null
+          con_avg?: number | null
+          concession_tax?: number | null
+          concessions?: number | null
+          created_at?: string
+          distributor?: string | null
+          entry_date?: string | null
+          event_name?: string | null
+          fee_terms?: string | null
+          format?: string | null
+          free?: number | null
+          id?: string
+          is_month_total?: boolean
+          kfs?: number | null
+          licensing?: number | null
+          matched_movie_id?: string | null
+          matched_showing_id?: string | null
+          merch?: number | null
+          net?: number | null
+          net_plus_pass?: number | null
+          notes?: string | null
+          online_mkt?: number | null
+          other_fees?: number | null
+          pass_amount?: number | null
+          passes?: number | null
+          print_mkt?: number | null
+          raw_row?: Json | null
+          rental?: number | null
+          sales_tax?: number | null
+          series?: string | null
+          shipping?: number | null
+          source_month?: string | null
+          source_year: number
+          sponsorship?: number | null
+          square_fee?: number | null
+          staff?: number | null
+          supply?: number | null
+          total_expense?: number | null
+          total_income?: number | null
+          updated_at?: string
+          utilities?: number | null
+          weekday?: string | null
+        }
+        Update: {
+          adult?: number | null
+          attendance?: number | null
+          box_office?: number | null
+          box_tax?: number | null
+          check_status?: string | null
+          child?: number | null
+          con_avg?: number | null
+          concession_tax?: number | null
+          concessions?: number | null
+          created_at?: string
+          distributor?: string | null
+          entry_date?: string | null
+          event_name?: string | null
+          fee_terms?: string | null
+          format?: string | null
+          free?: number | null
+          id?: string
+          is_month_total?: boolean
+          kfs?: number | null
+          licensing?: number | null
+          matched_movie_id?: string | null
+          matched_showing_id?: string | null
+          merch?: number | null
+          net?: number | null
+          net_plus_pass?: number | null
+          notes?: string | null
+          online_mkt?: number | null
+          other_fees?: number | null
+          pass_amount?: number | null
+          passes?: number | null
+          print_mkt?: number | null
+          raw_row?: Json | null
+          rental?: number | null
+          sales_tax?: number | null
+          series?: string | null
+          shipping?: number | null
+          source_month?: string | null
+          source_year?: number
+          sponsorship?: number | null
+          square_fee?: number | null
+          staff?: number | null
+          supply?: number | null
+          total_expense?: number | null
+          total_income?: number | null
+          updated_at?: string
+          utilities?: number | null
+          weekday?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "financial_entries_matched_movie_id_fkey"
+            columns: ["matched_movie_id"]
+            isOneToOne: false
+            referencedRelation: "movies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "financial_entries_matched_showing_id_fkey"
+            columns: ["matched_showing_id"]
+            isOneToOne: false
+            referencedRelation: "showings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      historical_screenings: {
+        Row: {
+          created_at: string
+          film_title_display: string
+          film_title_normalized: string
+          film_year: number | null
+          id: string
+          is_double_feature: boolean
+          match_confidence: string | null
+          matched_movie_id: string | null
+          raw_cell: string
+          screening_date: string
+          updated_at: string
+          venue_name: string
+          year: number
+        }
+        Insert: {
+          created_at?: string
+          film_title_display: string
+          film_title_normalized: string
+          film_year?: number | null
+          id?: string
+          is_double_feature?: boolean
+          match_confidence?: string | null
+          matched_movie_id?: string | null
+          raw_cell: string
+          screening_date: string
+          updated_at?: string
+          venue_name: string
+          year: number
+        }
+        Update: {
+          created_at?: string
+          film_title_display?: string
+          film_title_normalized?: string
+          film_year?: number | null
+          id?: string
+          is_double_feature?: boolean
+          match_confidence?: string | null
+          matched_movie_id?: string | null
+          raw_cell?: string
+          screening_date?: string
+          updated_at?: string
+          venue_name?: string
+          year?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "historical_screenings_matched_movie_id_fkey"
+            columns: ["matched_movie_id"]
+            isOneToOne: false
+            referencedRelation: "movies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       host_event_assignments: {
         Row: {
           created_at: string
@@ -376,6 +597,51 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      kenworthy_history: {
+        Row: {
+          category: string
+          created_at: string
+          description: string | null
+          display_order: number
+          end_date: string | null
+          event_date: string | null
+          id: string
+          image_url: string | null
+          source_url: string | null
+          title: string
+          updated_at: string
+          year: number
+        }
+        Insert: {
+          category: string
+          created_at?: string
+          description?: string | null
+          display_order?: number
+          end_date?: string | null
+          event_date?: string | null
+          id?: string
+          image_url?: string | null
+          source_url?: string | null
+          title: string
+          updated_at?: string
+          year: number
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          description?: string | null
+          display_order?: number
+          end_date?: string | null
+          event_date?: string | null
+          id?: string
+          image_url?: string | null
+          source_url?: string | null
+          title?: string
+          updated_at?: string
+          year?: number
+        }
+        Relationships: []
       }
       live_performances: {
         Row: {
