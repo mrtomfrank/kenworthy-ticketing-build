@@ -27,13 +27,13 @@ type Result =
   | { state: 'no-signature' }
   | { state: 'error'; message: string };
 
-function b64decode(s: string): Uint8Array {
+function b64decode(s: string): Uint8Array<ArrayBuffer> {
   const bin = atob(s);
-  const out = new Uint8Array(bin.length);
+  const out = new Uint8Array(new ArrayBuffer(bin.length));
   for (let i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i);
   return out;
 }
-async function sha256Hex(bytes: Uint8Array): Promise<string> {
+async function sha256Hex(bytes: BufferSource): Promise<string> {
   const buf = await crypto.subtle.digest('SHA-256', bytes);
   return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('');
 }
@@ -66,8 +66,9 @@ export default function VerifyContract() {
     }
     setResult({ state: 'checking' });
     try {
-      const bytes = new Uint8Array(await file.arrayBuffer());
-      const sha = await sha256Hex(bytes);
+      const buffer = await file.arrayBuffer();
+      const bytes = new Uint8Array(buffer);
+      const sha = await sha256Hex(buffer);
 
       const pubKey = await crypto.subtle.importKey(
         'raw',
@@ -80,7 +81,7 @@ export default function VerifyContract() {
         'Ed25519',
         pubKey,
         b64decode(sig.signature_b64),
-        bytes
+        buffer
       );
 
       if (ok && sha === sig.signed_pdf_sha256) {
