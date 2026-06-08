@@ -95,7 +95,7 @@ async function stampVerifyPage(pdfBytes: Uint8Array, fields: {
   y -= 24;
 
   const note =
-    'This page records a detached cryptographic signature for the preceding contract. The SHA-256 hash printed on the verification page is computed over the unsigned PDF (this page excluded). To verify: visit the link above, upload the original signed PDF, and the page will recompute the hash and check the Ed25519 signature against the Kenworthy public key.';
+    'This page records a detached cryptographic signature for the preceding contract. The Kenworthy server has stored the SHA-256 hash of this entire signed PDF together with an Ed25519 signature over that hash. To verify: visit the link above, upload this PDF file unchanged, and the verifier will recompute its SHA-256 and check the signature against the Kenworthy public key. Any modification to the contract — even one character — will cause verification to fail.';
   // wrap
   const words = note.split(' ');
   let line = '';
