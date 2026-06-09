@@ -22,13 +22,21 @@ export function Layout({ children }: { children: React.ReactNode }) {
     <div className="min-h-screen bg-background flex flex-col">
       <header className="sticky top-0 z-50 glass border-b border-accent/20">
         <div className="container flex h-[68px] items-center justify-between gap-4">
-          <Link to="/" className="flex items-center group" aria-label="The Kenworthy — home">
-            <KenworthyLogo
-              size="header"
-              className="transition-opacity group-hover:opacity-80"
-              loading="eager"
-            />
-          </Link>
+          <div className="flex items-center gap-5 min-w-0">
+            <Link to="/" className="flex items-center group" aria-label="The Kenworthy — home">
+              <KenworthyLogo
+                size="header"
+                className="transition-opacity group-hover:opacity-80"
+                loading="eager"
+              />
+            </Link>
+            <Link
+              to="/sponsors"
+              className="hidden sm:inline font-display uppercase text-xs tracking-[0.25em] text-accent hover:text-primary transition-colors"
+            >
+              Our Sponsors
+            </Link>
+          </div>
 
           <nav className="flex items-center gap-1.5" aria-label="Primary">
             {user ? (
