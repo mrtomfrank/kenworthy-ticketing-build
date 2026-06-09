@@ -22,13 +22,21 @@ export function Layout({ children }: { children: React.ReactNode }) {
     <div className="min-h-screen bg-background flex flex-col">
       <header className="sticky top-0 z-50 glass border-b border-accent/20">
         <div className="container flex h-[68px] items-center justify-between gap-4">
-          <Link to="/" className="flex items-center group" aria-label="The Kenworthy — home">
-            <KenworthyLogo
-              size="header"
-              className="transition-opacity group-hover:opacity-80"
-              loading="eager"
-            />
-          </Link>
+          <div className="flex items-center gap-5 min-w-0">
+            <Link to="/" className="flex items-center group" aria-label="The Kenworthy — home">
+              <KenworthyLogo
+                size="header"
+                className="transition-opacity group-hover:opacity-80"
+                loading="eager"
+              />
+            </Link>
+            <Link
+              to="/sponsors"
+              className="hidden sm:inline font-display uppercase text-xs tracking-[0.25em] text-accent hover:text-primary transition-colors"
+            >
+              Our Sponsors
+            </Link>
+          </div>
 
           <nav className="flex items-center gap-1.5" aria-label="Primary">
             {user ? (
@@ -97,11 +105,6 @@ export function Layout({ children }: { children: React.ReactNode }) {
           <div className="md:text-right text-muted-foreground">
             <p className="font-serif">Performing Arts Centre</p>
             <p className="font-serif">Celebrating 100 Years · Est. 1926</p>
-            <p className="mt-3">
-              <Link to="/sponsors" className="font-display uppercase text-xs tracking-[0.2em] text-accent hover:text-primary transition-colors">
-                Our Sponsors
-              </Link>
-            </p>
             <p className="mt-3 text-xs">© {new Date().getFullYear()} The Kenworthy</p>
           </div>
         </div>
