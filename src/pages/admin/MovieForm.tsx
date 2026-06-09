@@ -26,6 +26,11 @@ export default function MovieForm() {
   const [isActive, setIsActive] = useState(true);
   const [trailerUrl, setTrailerUrl] = useState('');
   const [isFeatured, setIsFeatured] = useState(false);
+  const [distributor, setDistributor] = useState('');
+  const [circuit, setCircuit] = useState('');
+  const [termsPercent, setTermsPercent] = useState<string>('');
+  const [releaseYear, setReleaseYear] = useState<string>('');
+  const [releaseLabel, setReleaseLabel] = useState('');
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
@@ -43,6 +48,11 @@ export default function MovieForm() {
           setIsActive(data.is_active);
           setTrailerUrl(data.trailer_url || '');
           setIsFeatured(!!data.is_featured);
+          setDistributor((data as any).distributor || '');
+          setCircuit((data as any).circuit || '');
+          setTermsPercent((data as any).terms_percent != null ? String((data as any).terms_percent) : '');
+          setReleaseYear((data as any).release_year != null ? String((data as any).release_year) : '');
+          setReleaseLabel((data as any).release_label || '');
         }
       });
     }
@@ -62,6 +72,11 @@ export default function MovieForm() {
         is_active: isActive,
         trailer_url: trailerUrl || null,
         is_featured: isFeatured,
+        distributor: distributor || null,
+        circuit: circuit || null,
+        terms_percent: termsPercent ? Number(termsPercent) : null,
+        release_year: releaseYear ? Number(releaseYear) : null,
+        release_label: releaseLabel || null,
       };
 
       const { error } = isEdit
@@ -130,6 +145,31 @@ export default function MovieForm() {
                 <p className="font-serif text-xs text-muted-foreground mt-1">
                   Highlight this on the homepage as the featured production. Doesn't change calendar order.
                 </p>
+              </div>
+            </div>
+            <div className="space-y-3 rounded-md border border-border/40 p-3">
+              <p className="text-xs uppercase tracking-wide text-muted-foreground">Distributor info (for Comscore box office receipts)</p>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <Label>Distributor</Label>
+                  <Input value={distributor} onChange={e => setDistributor(e.target.value)} placeholder="Warner Bros." />
+                </div>
+                <div className="space-y-1">
+                  <Label>Circuit / Buyer</Label>
+                  <Input value={circuit} onChange={e => setCircuit(e.target.value)} placeholder="Clark Film Buying" />
+                </div>
+                <div className="space-y-1">
+                  <Label>Terms %</Label>
+                  <Input type="number" step="0.01" value={termsPercent} onChange={e => setTermsPercent(e.target.value)} placeholder="35" />
+                </div>
+                <div className="space-y-1">
+                  <Label>Release Year</Label>
+                  <Input type="number" value={releaseYear} onChange={e => setReleaseYear(e.target.value)} placeholder="1986" />
+                </div>
+                <div className="space-y-1 col-span-2">
+                  <Label>Release Label</Label>
+                  <Input value={releaseLabel} onChange={e => setReleaseLabel(e.target.value)} placeholder="2D / Default" />
+                </div>
               </div>
             </div>
             <Button type="submit" className="w-full" disabled={saving}>
