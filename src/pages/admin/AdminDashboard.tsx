@@ -6,7 +6,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Film, Plus, Calendar, Ticket, Edit, Trash2, ShoppingCart, ScanLine, Music, PartyPopper, BarChart3, UtensilsCrossed, CreditCard, Download, Users, Archive, Wallet, KeyRound } from 'lucide-react';
+import { Film, Plus, Calendar, Ticket, Edit, Trash2, ShoppingCart, ScanLine, Music, PartyPopper, BarChart3, UtensilsCrossed, CreditCard, Download, Users, Archive, Wallet, KeyRound, FileText } from 'lucide-react';
 import AnalyticsTab from '@/components/admin/AnalyticsTab';
 import ConcessionItemsTab from '@/components/admin/ConcessionItemsTab';
 import ConcessionMenusTab from '@/components/admin/ConcessionMenusTab';
@@ -15,6 +15,7 @@ import HostManagementTab from '@/components/admin/HostManagementTab';
 import ArchiveTab from '@/components/admin/ArchiveTab';
 import AccountingTab from '@/components/admin/AccountingTab';
 import RentalRequestsTab from '@/components/admin/RentalRequestsTab';
+import BoxOfficeReceiptsTab from '@/components/admin/BoxOfficeReceiptsTab';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
 import { exportContactsCsv } from '@/lib/exportContacts';
@@ -116,7 +117,7 @@ export default function AdminDashboard() {
       </div>
 
       <Tabs defaultValue="movies" className="space-y-4">
-        <TabsList className="grid w-full grid-cols-10">
+        <TabsList className="grid w-full grid-cols-11">
           <TabsTrigger value="movies">Movies</TabsTrigger>
           <TabsTrigger value="events">Events</TabsTrigger>
           <TabsTrigger value="concerts">Live Performances</TabsTrigger>
@@ -126,6 +127,7 @@ export default function AdminDashboard() {
           <TabsTrigger value="rentals"><KeyRound className="h-4 w-4 mr-1 inline" />Rentals</TabsTrigger>
           <TabsTrigger value="analytics"><BarChart3 className="h-4 w-4 mr-1 inline" />Analytics</TabsTrigger>
           <TabsTrigger value="accounting"><Wallet className="h-4 w-4 mr-1 inline" />Accounting</TabsTrigger>
+          <TabsTrigger value="bor"><FileText className="h-4 w-4 mr-1 inline" />BOR</TabsTrigger>
           <TabsTrigger value="archive"><Archive className="h-4 w-4 mr-1 inline" />Archive</TabsTrigger>
         </TabsList>
 
@@ -342,6 +344,10 @@ export default function AdminDashboard() {
         {/* Accounting Tab */}
         <TabsContent value="accounting">
           <AccountingTab />
+        </TabsContent>
+
+        <TabsContent value="bor">
+          <BoxOfficeReceiptsTab />
         </TabsContent>
 
         {/* Rentals Tab */}
