@@ -13,6 +13,7 @@ import { SeatMap } from '@/components/SeatMap';
 import { GuestCheckoutForm } from '@/components/GuestCheckoutForm';
 import { type Seat, type PriceTier, TAX_RATE, buildTicketRows, computeOrderTotals, computeLineItemTotals, type TicketLineItem } from '@/lib/booking';
 import { PreviouslyScreened } from '@/components/PreviouslyScreened';
+import { SEO } from '@/components/SEO';
 
 type ProductionType = 'movie' | 'event' | 'concert';
 
