@@ -74,7 +74,7 @@ export default function Rentals() {
           .select('id, proposed_date, event_title, status')
           .gte('proposed_date', today.toISOString().slice(0, 10))
           .lt('proposed_date', horizon.toISOString().slice(0, 10))
-          .in('status', ['approved', 'confirmed']),
+          .in('status', ['approved']),
       ]);
 
       if (cancelled) return;
