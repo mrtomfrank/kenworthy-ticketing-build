@@ -80,7 +80,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
                   <Link to="/auth">Sign In</Link>
                 </Button>
                 <Button size="sm" asChild className="h-10 px-5">
-                  <Link to="/auth?tab=signup">Get Tickets</Link>
+                  <Link to="/#calendar">Get Tickets</Link>
                 </Button>
               </>
             )}
