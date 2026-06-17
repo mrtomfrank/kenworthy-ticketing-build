@@ -42,6 +42,35 @@ function shiftMinutes(s: Shift) {
   return Math.max(0, total - unpaidBreak);
 }
 
+function DateField({ label, value, onChange }: { label: string; value: string; onChange: (v: string) => void }) {
+  const date = value ? parseISO(value) : undefined;
+  return (
+    <div className="flex flex-col gap-1">
+      <Label className="text-xs">{label}</Label>
+      <Popover>
+        <PopoverTrigger asChild>
+          <Button
+            variant="outline"
+            className={cn('w-[180px] justify-start text-left font-normal', !date && 'text-muted-foreground')}
+          >
+            <CalendarIcon className="h-4 w-4 mr-2" />
+            {date ? format(date, 'MMM d, yyyy') : <span>Pick a date</span>}
+          </Button>
+        </PopoverTrigger>
+        <PopoverContent className="w-auto p-0" align="start">
+          <Calendar
+            mode="single"
+            selected={date}
+            onSelect={(d) => d && onChange(format(d, 'yyyy-MM-dd'))}
+            initialFocus
+            className={cn('p-3 pointer-events-auto')}
+          />
+        </PopoverContent>
+      </Popover>
+    </div>
+  );
+}
+
 export function LaborTimecards() {
   const today = new Date();
   const [begin, setBegin] = useState(format(startOfWeek(today, { weekStartsOn: 1 }), 'yyyy-MM-dd'));
