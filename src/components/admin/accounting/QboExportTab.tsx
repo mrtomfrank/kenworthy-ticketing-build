@@ -32,7 +32,7 @@ export default function QboExportTab() {
     const fromIso = new Date(from).toISOString();
     const toIso = new Date(new Date(to).getTime() + 86400000).toISOString();
 
-    const [accountsRes, mappingsRes, ticketsRes, concRes, donRes, passRes, ptypesRes, showingsRes] = await Promise.all([
+    const [accountsRes, mappingsRes, ticketsRes, concRes, donRes, passRes, ptypesRes, showingsRes, rilRes] = await Promise.all([
       supabase.from('chart_of_accounts' as any).select('id,code,qbo_account_name,account_type'),
       supabase.from('account_mappings' as any).select('source_type,source_key,account_id,is_default'),
       supabase.from('tickets').select('total_price,price,tax_amount,purchased_at,showing_id,status').gte('purchased_at', fromIso).lt('purchased_at', toIso).eq('status', 'confirmed'),
@@ -41,6 +41,7 @@ export default function QboExportTab() {
       supabase.from('user_film_passes').select('pass_type_id,purchased_at').gte('purchased_at', fromIso).lt('purchased_at', toIso),
       supabase.from('film_pass_types').select('id,name,price'),
       supabase.from('showings').select('id,movie_id,event_id,live_performance_id'),
+      supabase.from('rental_invoice_lines' as any).select('line_kind,quantity,unit_price,account_id,is_taxable,created_at').gte('created_at', fromIso).lt('created_at', toIso),
     ]);
 
     const accounts = (accountsRes.data || []) as any[];
@@ -101,6 +102,14 @@ export default function QboExportTab() {
       else if (nm.includes('gift')) key = 'movie_night_gift';
       else if (nm.includes('silent')) key = 'silent_film_fest';
       add(resolve('pass_type', key), price);
+    }
+
+    // Rental invoice lines — honor per-line account override, else map by line_kind
+    for (const r of (rilRes.data as any[]) || []) {
+      const amt = Number(r.quantity) * Number(r.unit_price);
+      const acct = r.account_id || resolve('rental_line_kind', r.line_kind);
+      add(acct, amt);
+      if (r.is_taxable) add(resolve('sales_tax', 'collected'), amt * 0.06);
     }
 
     return Array.from(totals.values()).sort((a, b) => a.code.localeCompare(b.code));
