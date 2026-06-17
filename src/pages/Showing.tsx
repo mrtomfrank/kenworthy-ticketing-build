@@ -46,6 +46,9 @@ export default function Showing() {
   const [tierQuantities, setTierQuantities] = useState<Record<string, number>>({});
   const [selectedTierId, setSelectedTierId] = useState<string>('');
 
+  // Per-seat tier mapping for assigned seating: seats.id -> tier (with color)
+  const [seatTierMap, setSeatTierMap] = useState<Record<string, { tierId: string; tierName: string; price: number; color: string }>>({});
+
   // Film Pass state
   const [userPasses, setUserPasses] = useState<any[]>([]);
   const [selectedPassId, setSelectedPassId] = useState<string>('');
@@ -110,6 +113,40 @@ export default function Showing() {
         setVenue(venueRes.data);
         setSeats(seatsRes.data || []);
         setTakenSeatIds(new Set((ticketsRes.data || []).map(t => t.seat_id)));
+
+        // Resolve per-seat tier mapping. showing_seat_tiers links venue_seats
+        // to showing_price_tiers. The customer seat picker uses the global
+        // `seats` table — match by row+section+number so we can overlay each
+        // seat's tier name, price, and color.
+        const tierRows = (tiersRes.data || []) as any[];
+        if (tierRows.length > 0) {
+          const tierById = new Map<string, { tier_name: string; price: number; color: string }>();
+          for (const t of tierRows) {
+            tierById.set(t.id, { tier_name: t.tier_name, price: Number(t.price), color: t.color || 'hsl(var(--primary))' });
+          }
+          const { data: seatTiers } = await supabase
+            .from('showing_seat_tiers')
+            .select('tier_id, venue_seats!showing_seat_tiers_venue_seat_id_fkey(seat_row, seat_number, section)')
+            .eq('showing_id', id);
+
+          const seatByKey = new Map<string, string>();
+          for (const seat of (seatsRes.data || []) as any[]) {
+            const sec = (seat.section || 'center').toLowerCase();
+            seatByKey.set(`${seat.seat_row}|${sec}|${seat.seat_number}`, seat.id);
+          }
+          const map: Record<string, { tierId: string; tierName: string; price: number; color: string }> = {};
+          for (const row of (seatTiers || []) as any[]) {
+            const vs = row.venue_seats;
+            if (!vs) continue;
+            const sec = (vs.section || 'center').toLowerCase();
+            const seatId = seatByKey.get(`${vs.seat_row}|${sec}|${vs.seat_number}`);
+            const meta = tierById.get(row.tier_id);
+            if (seatId && meta) {
+              map[seatId] = { tierId: row.tier_id, tierName: meta.tier_name, price: meta.price, color: meta.color };
+            }
+          }
+          setSeatTierMap(map);
+        }
       } else {
         const [prodRes, venueRes, ticketsRes] = await Promise.all([
           productionPromise,
