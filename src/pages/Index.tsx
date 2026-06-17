@@ -59,6 +59,7 @@ function buildFeed(
 
     items.push({
       id: `${type}-${prodId}-${s.id}`,
+      productionId: prodId,
       title: prod.title,
       posterUrl: prod.poster_url,
       trailerUrl: prod.trailer_url,
@@ -85,6 +86,7 @@ function buildFeed(
       const farFuture = new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString();
       items.push({
         id: `${type}-${row.id}-standalone`,
+        productionId: row.id,
         title: row.title,
         posterUrl: row.poster_url,
         trailerUrl: row.trailer_url,
