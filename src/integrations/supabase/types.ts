@@ -915,6 +915,84 @@ export type Database = {
         }
         Relationships: []
       }
+      production_price_tiers: {
+        Row: {
+          color: string
+          created_at: string
+          display_order: number
+          id: string
+          price: number
+          production_id: string
+          production_type: string
+          tier_name: string
+          updated_at: string
+        }
+        Insert: {
+          color?: string
+          created_at?: string
+          display_order?: number
+          id?: string
+          price: number
+          production_id: string
+          production_type: string
+          tier_name: string
+          updated_at?: string
+        }
+        Update: {
+          color?: string
+          created_at?: string
+          display_order?: number
+          id?: string
+          price?: number
+          production_id?: string
+          production_type?: string
+          tier_name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      production_seat_tiers: {
+        Row: {
+          created_at: string
+          id: string
+          production_id: string
+          production_type: string
+          tier_template_id: string
+          venue_seat_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          production_id: string
+          production_type: string
+          tier_template_id: string
+          venue_seat_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          production_id?: string
+          production_type?: string
+          tier_template_id?: string
+          venue_seat_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "production_seat_tiers_tier_template_id_fkey"
+            columns: ["tier_template_id"]
+            isOneToOne: false
+            referencedRelation: "production_price_tiers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "production_seat_tiers_venue_seat_id_fkey"
+            columns: ["venue_seat_id"]
+            isOneToOne: false
+            referencedRelation: "venue_seats"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           created_at: string
@@ -1275,6 +1353,7 @@ export type Database = {
       }
       showing_price_tiers: {
         Row: {
+          color: string
           created_at: string
           display_order: number
           id: string
@@ -1284,6 +1363,7 @@ export type Database = {
           tier_name: string
         }
         Insert: {
+          color?: string
           created_at?: string
           display_order?: number
           id?: string
@@ -1293,6 +1373,7 @@ export type Database = {
           tier_name?: string
         }
         Update: {
+          color?: string
           created_at?: string
           display_order?: number
           id?: string
@@ -1307,6 +1388,52 @@ export type Database = {
             columns: ["showing_id"]
             isOneToOne: false
             referencedRelation: "showings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      showing_seat_tiers: {
+        Row: {
+          created_at: string
+          id: string
+          showing_id: string
+          tier_id: string
+          venue_seat_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          showing_id: string
+          tier_id: string
+          venue_seat_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          showing_id?: string
+          tier_id?: string
+          venue_seat_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "showing_seat_tiers_showing_id_fkey"
+            columns: ["showing_id"]
+            isOneToOne: false
+            referencedRelation: "showings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "showing_seat_tiers_tier_id_fkey"
+            columns: ["tier_id"]
+            isOneToOne: false
+            referencedRelation: "showing_price_tiers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "showing_seat_tiers_venue_seat_id_fkey"
+            columns: ["venue_seat_id"]
+            isOneToOne: false
+            referencedRelation: "venue_seats"
             referencedColumns: ["id"]
           },
         ]
@@ -1655,6 +1782,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      apply_production_template_to_showing: {
+        Args: { p_showing_id: string }
+        Returns: undefined
+      }
       get_contract_signature: {
         Args: { p_request_id: string }
         Returns: {
