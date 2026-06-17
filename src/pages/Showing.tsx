@@ -76,6 +76,7 @@ export default function Showing() {
         tier_name: t.tier_name,
         price: Number(t.price),
         display_order: t.display_order,
+        color: t.color || null,
       }));
       setPriceTiers(tiers);
       if (tiers.length > 0) {
