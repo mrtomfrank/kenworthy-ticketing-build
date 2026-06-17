@@ -274,16 +274,41 @@ export function LaborTimecards() {
   return (
     <div className="space-y-4">
       <Card>
-        <CardContent className="py-4 flex flex-wrap gap-3 items-end">
-          <div><Label className="text-xs">From</Label><Input type="date" value={begin} onChange={(e) => setBegin(e.target.value)} /></div>
-          <div><Label className="text-xs">To</Label><Input type="date" value={end} onChange={(e) => setEnd(e.target.value)} /></div>
-          <Button onClick={load} disabled={loading}>{loading ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Refresh'}</Button>
-          <Button variant="outline" onClick={exportCsv} disabled={!rows.length}><Download className="h-4 w-4 mr-1" /> CSV</Button>
-          <Button variant="outline" onClick={exportPdf} disabled={!rows.length}><Download className="h-4 w-4 mr-1" /> PDF</Button>
-          <div className="ml-auto text-sm text-muted-foreground">
-            <span className="mr-4">Total: <strong className="text-foreground">{totalHours.toFixed(2)} h</strong></span>
-            <span className="mr-4">OT: <strong className="text-foreground">{totalOvertime.toFixed(2)} h</strong></span>
-            <span>Labor cost: <strong className="text-foreground">${totalOtCost.toFixed(2)}</strong></span>
+        <CardContent className="py-4 space-y-3">
+          <div className="flex flex-wrap gap-3 items-end">
+            <DateField label="From" value={begin} onChange={setBegin} />
+            <DateField label="To" value={end} onChange={setEnd} />
+            <Button onClick={load} disabled={loading}>{loading ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Refresh'}</Button>
+            <Button variant="outline" onClick={exportCsv} disabled={!rows.length}><Download className="h-4 w-4 mr-1" /> CSV</Button>
+            <Button variant="outline" onClick={exportPdf} disabled={!rows.length}><Download className="h-4 w-4 mr-1" /> PDF</Button>
+            <div className="ml-auto text-sm text-muted-foreground">
+              <span className="mr-4">Total: <strong className="text-foreground">{totalHours.toFixed(2)} h</strong></span>
+              <span className="mr-4">OT: <strong className="text-foreground">{totalOvertime.toFixed(2)} h</strong></span>
+              <span>Labor cost: <strong className="text-foreground">${totalOtCost.toFixed(2)}</strong></span>
+            </div>
+          </div>
+          <div className="flex flex-wrap gap-2 items-center">
+            <span className="text-xs uppercase tracking-wide text-muted-foreground mr-1">Quick range</span>
+            {([
+              ['This week', () => [startOfWeek(today, { weekStartsOn: 1 }), endOfWeek(today, { weekStartsOn: 1 })]],
+              ['Last week', () => {
+                const lw = subWeeks(today, 1);
+                return [startOfWeek(lw, { weekStartsOn: 1 }), endOfWeek(lw, { weekStartsOn: 1 })];
+              }],
+              ['Last 2 weeks', () => [startOfWeek(subWeeks(today, 1), { weekStartsOn: 1 }), endOfWeek(today, { weekStartsOn: 1 })]],
+              ['This month', () => [startOfMonth(today), endOfMonth(today)]],
+              ['Last month', () => {
+                const lm = subMonths(today, 1);
+                return [startOfMonth(lm), endOfMonth(lm)];
+              }],
+              ['Last 30 days', () => [subDays(today, 29), today]],
+            ] as Array<[string, () => Date[]]>).map(([label, fn]) => (
+              <Button key={label} variant="ghost" size="sm" className="h-7 text-xs" onClick={() => {
+                const [s, e] = fn();
+                setBegin(format(s, 'yyyy-MM-dd'));
+                setEnd(format(e, 'yyyy-MM-dd'));
+              }}>{label}</Button>
+            ))}
           </div>
         </CardContent>
       </Card>
