@@ -603,15 +603,32 @@ export default function Showing() {
                     {hasTiers ? (
                       isAssignedSeating ? (
                         <>
-                          {(() => {
-                            const tier = priceTiers.find(t => t.id === selectedTierId);
+                          {Array.from(selectedSeats).map(seatId => {
+                            const seat = seats.find(s => s.id === seatId);
+                            if (!seat) return null;
+                            const fallback = priceTiers.reduce((m, t) => (t.price < m.price ? t : m), priceTiers[0]);
+                            const meta = seatTierMap[seatId] ?? {
+                              tierName: fallback.tier_name,
+                              price: fallback.price,
+                              color: 'hsl(var(--primary))',
+                            };
                             return (
-                              <div className="flex justify-between">
-                                <span>{tier?.tier_name} × {selectedSeats.size}</span>
-                                <span>${((tier?.price || 0) * selectedSeats.size).toFixed(2)}</span>
+                              <div key={seatId} className="flex items-center justify-between gap-2">
+                                <span className="flex items-center gap-2 min-w-0">
+                                  <span
+                                    className="h-3 w-3 rounded-sm border border-border shrink-0"
+                                    style={{ backgroundColor: meta.color }}
+                                    aria-hidden
+                                  />
+                                  <span className="truncate">
+                                    Row {seat.seat_row}, Seat {seat.seat_number}
+                                    <span className="text-muted-foreground"> · {meta.tierName}</span>
+                                  </span>
+                                </span>
+                                <span className="tabular-nums">${meta.price.toFixed(2)}</span>
                               </div>
                             );
-                          })()}
+                          })}
                         </>
                       ) : (
                         priceTiers
