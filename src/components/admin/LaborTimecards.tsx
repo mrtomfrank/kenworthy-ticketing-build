@@ -2,11 +2,16 @@ import { useEffect, useMemo, useState, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Calendar } from '@/components/ui/calendar';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Loader2, Download, AlertTriangle } from 'lucide-react';
-import { format, differenceInMinutes, startOfWeek, endOfWeek } from 'date-fns';
+import { Loader2, Download, AlertTriangle, CalendarIcon } from 'lucide-react';
+import { cn } from '@/lib/utils';
+import {
+  format, differenceInMinutes, startOfWeek, endOfWeek,
+  startOfMonth, endOfMonth, subDays, subWeeks, subMonths, parseISO,
+} from 'date-fns';
 import { toast } from 'sonner';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
@@ -37,6 +42,35 @@ function shiftMinutes(s: Shift) {
   return Math.max(0, total - unpaidBreak);
 }
 
+function DateField({ label, value, onChange }: { label: string; value: string; onChange: (v: string) => void }) {
+  const date = value ? parseISO(value) : undefined;
+  return (
+    <div className="flex flex-col gap-1">
+      <Label className="text-xs">{label}</Label>
+      <Popover>
+        <PopoverTrigger asChild>
+          <Button
+            variant="outline"
+            className={cn('w-[180px] justify-start text-left font-normal', !date && 'text-muted-foreground')}
+          >
+            <CalendarIcon className="h-4 w-4 mr-2" />
+            {date ? format(date, 'MMM d, yyyy') : <span>Pick a date</span>}
+          </Button>
+        </PopoverTrigger>
+        <PopoverContent className="w-auto p-0" align="start">
+          <Calendar
+            mode="single"
+            selected={date}
+            onSelect={(d) => d && onChange(format(d, 'yyyy-MM-dd'))}
+            initialFocus
+            className={cn('p-3 pointer-events-auto')}
+          />
+        </PopoverContent>
+      </Popover>
+    </div>
+  );
+}
+
 export function LaborTimecards() {
   const today = new Date();
   const [begin, setBegin] = useState(format(startOfWeek(today, { weekStartsOn: 1 }), 'yyyy-MM-dd'));
@@ -47,6 +81,10 @@ export function LaborTimecards() {
   const [simulated, setSimulated] = useState(false);
 
   const load = useCallback(async () => {
+    if (new Date(begin) > new Date(end)) {
+      toast.error('Start date must be on or before end date.');
+      return;
+    }
     setLoading(true);
     try {
       const beginIso = new Date(begin + 'T00:00:00').toISOString();
@@ -265,16 +303,41 @@ export function LaborTimecards() {
   return (
     <div className="space-y-4">
       <Card>
-        <CardContent className="py-4 flex flex-wrap gap-3 items-end">
-          <div><Label className="text-xs">From</Label><Input type="date" value={begin} onChange={(e) => setBegin(e.target.value)} /></div>
-          <div><Label className="text-xs">To</Label><Input type="date" value={end} onChange={(e) => setEnd(e.target.value)} /></div>
-          <Button onClick={load} disabled={loading}>{loading ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Refresh'}</Button>
-          <Button variant="outline" onClick={exportCsv} disabled={!rows.length}><Download className="h-4 w-4 mr-1" /> CSV</Button>
-          <Button variant="outline" onClick={exportPdf} disabled={!rows.length}><Download className="h-4 w-4 mr-1" /> PDF</Button>
-          <div className="ml-auto text-sm text-muted-foreground">
-            <span className="mr-4">Total: <strong className="text-foreground">{totalHours.toFixed(2)} h</strong></span>
-            <span className="mr-4">OT: <strong className="text-foreground">{totalOvertime.toFixed(2)} h</strong></span>
-            <span>Labor cost: <strong className="text-foreground">${totalOtCost.toFixed(2)}</strong></span>
+        <CardContent className="py-4 space-y-3">
+          <div className="flex flex-wrap gap-3 items-end">
+            <DateField label="From" value={begin} onChange={setBegin} />
+            <DateField label="To" value={end} onChange={setEnd} />
+            <Button onClick={load} disabled={loading}>{loading ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Refresh'}</Button>
+            <Button variant="outline" onClick={exportCsv} disabled={!rows.length}><Download className="h-4 w-4 mr-1" /> CSV</Button>
+            <Button variant="outline" onClick={exportPdf} disabled={!rows.length}><Download className="h-4 w-4 mr-1" /> PDF</Button>
+            <div className="ml-auto text-sm text-muted-foreground">
+              <span className="mr-4">Total: <strong className="text-foreground">{totalHours.toFixed(2)} h</strong></span>
+              <span className="mr-4">OT: <strong className="text-foreground">{totalOvertime.toFixed(2)} h</strong></span>
+              <span>Labor cost: <strong className="text-foreground">${totalOtCost.toFixed(2)}</strong></span>
+            </div>
+          </div>
+          <div className="flex flex-wrap gap-2 items-center">
+            <span className="text-xs uppercase tracking-wide text-muted-foreground mr-1">Quick range</span>
+            {([
+              ['This week', () => [startOfWeek(today, { weekStartsOn: 1 }), endOfWeek(today, { weekStartsOn: 1 })]],
+              ['Last week', () => {
+                const lw = subWeeks(today, 1);
+                return [startOfWeek(lw, { weekStartsOn: 1 }), endOfWeek(lw, { weekStartsOn: 1 })];
+              }],
+              ['Last 2 weeks', () => [startOfWeek(subWeeks(today, 1), { weekStartsOn: 1 }), endOfWeek(today, { weekStartsOn: 1 })]],
+              ['This month', () => [startOfMonth(today), endOfMonth(today)]],
+              ['Last month', () => {
+                const lm = subMonths(today, 1);
+                return [startOfMonth(lm), endOfMonth(lm)];
+              }],
+              ['Last 30 days', () => [subDays(today, 29), today]],
+            ] as Array<[string, () => Date[]]>).map(([label, fn]) => (
+              <Button key={label} variant="ghost" size="sm" className="h-7 text-xs" onClick={() => {
+                const [s, e] = fn();
+                setBegin(format(s, 'yyyy-MM-dd'));
+                setEnd(format(e, 'yyyy-MM-dd'));
+              }}>{label}</Button>
+            ))}
           </div>
         </CardContent>
       </Card>
