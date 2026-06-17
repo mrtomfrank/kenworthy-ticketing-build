@@ -35,7 +35,7 @@ export default function QboExportTab() {
     const [accountsRes, mappingsRes, ticketsRes, concRes, donRes, passRes, ptypesRes, showingsRes] = await Promise.all([
       supabase.from('chart_of_accounts' as any).select('id,code,qbo_account_name,account_type'),
       supabase.from('account_mappings' as any).select('source_type,source_key,account_id,is_default'),
-      supabase.from('tickets').select('total_price,price,tax_amount,created_at,showing_id,status').gte('created_at', fromIso).lt('created_at', toIso).eq('status', 'confirmed'),
+      supabase.from('tickets').select('total_price,price,tax_amount,purchased_at,showing_id,status').gte('purchased_at', fromIso).lt('purchased_at', toIso).eq('status', 'confirmed'),
       supabase.from('concession_sales').select('total,tax_amount,created_at').gte('created_at', fromIso).lt('created_at', toIso),
       supabase.from('donations').select('amount_cents,created_at,status').gte('created_at', fromIso).lt('created_at', toIso).eq('status', 'completed'),
       supabase.from('user_film_passes').select('pass_type_id,purchased_at').gte('purchased_at', fromIso).lt('purchased_at', toIso),
