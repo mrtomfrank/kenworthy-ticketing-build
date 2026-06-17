@@ -46,6 +46,9 @@ export default function Showing() {
   const [tierQuantities, setTierQuantities] = useState<Record<string, number>>({});
   const [selectedTierId, setSelectedTierId] = useState<string>('');
 
+  // Per-seat tier mapping for assigned seating: seats.id -> tier (with color)
+  const [seatTierMap, setSeatTierMap] = useState<Record<string, { tierId: string; tierName: string; price: number; color: string }>>({});
+
   // Film Pass state
   const [userPasses, setUserPasses] = useState<any[]>([]);
   const [selectedPassId, setSelectedPassId] = useState<string>('');
@@ -73,6 +76,7 @@ export default function Showing() {
         tier_name: t.tier_name,
         price: Number(t.price),
         display_order: t.display_order,
+        color: t.color || null,
       }));
       setPriceTiers(tiers);
       if (tiers.length > 0) {
@@ -110,6 +114,40 @@ export default function Showing() {
         setVenue(venueRes.data);
         setSeats(seatsRes.data || []);
         setTakenSeatIds(new Set((ticketsRes.data || []).map(t => t.seat_id)));
+
+        // Resolve per-seat tier mapping. showing_seat_tiers links venue_seats
+        // to showing_price_tiers. The customer seat picker uses the global
+        // `seats` table — match by row+section+number so we can overlay each
+        // seat's tier name, price, and color.
+        const tierRows = (tiersRes.data || []) as any[];
+        if (tierRows.length > 0) {
+          const tierById = new Map<string, { tier_name: string; price: number; color: string }>();
+          for (const t of tierRows) {
+            tierById.set(t.id, { tier_name: t.tier_name, price: Number(t.price), color: t.color || 'hsl(var(--primary))' });
+          }
+          const { data: seatTiers } = await supabase
+            .from('showing_seat_tiers')
+            .select('tier_id, venue_seats!showing_seat_tiers_venue_seat_id_fkey(seat_row, seat_number, section)')
+            .eq('showing_id', id);
+
+          const seatByKey = new Map<string, string>();
+          for (const seat of (seatsRes.data || []) as any[]) {
+            const sec = (seat.section || 'center').toLowerCase();
+            seatByKey.set(`${seat.seat_row}|${sec}|${seat.seat_number}`, seat.id);
+          }
+          const map: Record<string, { tierId: string; tierName: string; price: number; color: string }> = {};
+          for (const row of (seatTiers || []) as any[]) {
+            const vs = row.venue_seats;
+            if (!vs) continue;
+            const sec = (vs.section || 'center').toLowerCase();
+            const seatId = seatByKey.get(`${vs.seat_row}|${sec}|${vs.seat_number}`);
+            const meta = tierById.get(row.tier_id);
+            if (seatId && meta) {
+              map[seatId] = { tierId: row.tier_id, tierName: meta.tier_name, price: meta.price, color: meta.color };
+            }
+          }
+          setSeatTierMap(map);
+        }
       } else {
         const [prodRes, venueRes, ticketsRes] = await Promise.all([
           productionPromise,
@@ -171,13 +209,18 @@ export default function Showing() {
 
   if (hasTiers) {
     if (isAssignedSeating) {
-      // Assigned seating + tiers: all selected seats use the selected tier
-      const tier = priceTiers.find(t => t.id === selectedTierId);
+      // Assigned seating + tiers: each seat is priced by its own tier
+      // mapping. Seats with no mapping fall back to the lowest tier so we
+      // never give away a free ticket.
+      const fallback = priceTiers.reduce((m, t) => (t.price < m.price ? t : m), priceTiers[0]);
       ticketCount = selectedSeats.size;
-      const result = computeOrderTotals(ticketCount, tier?.price || 0);
-      subtotal = result.subtotal;
-      tax = result.tax;
-      total = result.total;
+      let sub = 0;
+      for (const seatId of selectedSeats) {
+        sub += seatTierMap[seatId]?.price ?? fallback.price;
+      }
+      subtotal = Math.round(sub * 100) / 100;
+      tax = Math.round(subtotal * TAX_RATE * 100) / 100;
+      total = Math.round((subtotal + tax) * 100) / 100;
     } else {
       // GA + tiers: per-tier quantities
       const items: TicketLineItem[] = priceTiers
@@ -211,9 +254,10 @@ export default function Showing() {
 
       if (hasTiers) {
         if (isAssignedSeating) {
-          const tier = priceTiers.find(t => t.id === selectedTierId);
+          const fallback = priceTiers.reduce((m, t) => (t.price < m.price ? t : m), priceTiers[0]);
           for (const seatId of selectedSeats) {
-            ticketDescriptors.push({ seat_id: seatId, tier_id: tier?.id });
+            const tierId = seatTierMap[seatId]?.tierId ?? fallback.id;
+            ticketDescriptors.push({ seat_id: seatId, tier_id: tierId });
           }
         } else {
           for (const tier of priceTiers) {
@@ -278,15 +322,28 @@ export default function Showing() {
 
       if (hasTiers) {
         if (isAssignedSeating) {
-          const tier = priceTiers.find(t => t.id === selectedTierId)!;
-          ticketRows = buildTicketRows({
-            lineItems: [{
-              tierId: tier.id,
+          const fallback = priceTiers.reduce((m, t) => (t.price < m.price ? t : m), priceTiers[0]);
+          // Group selected seats by tier so each line item has a single price.
+          const grouped = new Map<string, string[]>();
+          for (const seatId of selectedSeats) {
+            const tierId = seatTierMap[seatId]?.tierId ?? fallback.id;
+            const arr = grouped.get(tierId) ?? [];
+            arr.push(seatId);
+            grouped.set(tierId, arr);
+          }
+          const lineItems: TicketLineItem[] = [];
+          for (const [tierId, seatIds] of grouped) {
+            const tier = priceTiers.find(t => t.id === tierId)!;
+            lineItems.push({
+              tierId,
               tierName: tier.tier_name,
               price: tier.price,
-              quantity: selectedSeats.size,
-              seatIds: Array.from(selectedSeats),
-            }],
+              quantity: seatIds.length,
+              seatIds,
+            });
+          }
+          ticketRows = buildTicketRows({
+            lineItems,
             userId: user.id,
             showingId: id!,
             paymentMethod,
@@ -436,23 +493,24 @@ export default function Showing() {
               {hasTiers && (
                 <Card className="glass">
                   <CardHeader>
-                    <CardTitle className="font-display text-lg">Select Ticket Type</CardTitle>
+                    <CardTitle className="font-display text-lg">Seating Tiers</CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <div className="flex flex-wrap gap-2">
-                      {priceTiers.map(tier => (
-                        <Button
-                          key={tier.id}
-                          variant={selectedTierId === tier.id ? 'default' : 'outline'}
-                          size="sm"
-                          onClick={() => setSelectedTierId(tier.id)}
-                        >
-                          {tier.tier_name} — ${tier.price.toFixed(2)}
-                        </Button>
-                      ))}
+                    <div className="flex flex-wrap gap-3 text-sm">
+                      {priceTiers.map(tier => {
+                        const t: any = (tier as any);
+                        const color = t.color || 'hsl(var(--primary))';
+                        return (
+                          <div key={tier.id} className="flex items-center gap-2 rounded-md border border-border px-2.5 py-1.5">
+                            <span className="h-4 w-4 rounded-sm border border-border" style={{ backgroundColor: color }} />
+                            <span className="font-medium">{tier.tier_name}</span>
+                            <span className="text-muted-foreground">${tier.price.toFixed(2)}</span>
+                          </div>
+                        );
+                      })}
                     </div>
-                    <p className="text-xs text-muted-foreground mt-2">
-                      Select a ticket type, then pick your seats below
+                    <p className="text-xs text-muted-foreground mt-3">
+                      Each seat is colored by its tier. Hover or tap a seat to see its tier and price.
                     </p>
                   </CardContent>
                 </Card>
@@ -467,6 +525,12 @@ export default function Showing() {
                     takenSeatIds={takenSeatIds}
                     selectedSeats={selectedSeats}
                     onToggleSeat={toggleSeat}
+                    seatTierMeta={hasTiers ? Object.fromEntries(
+                      Object.entries(seatTierMap).map(([seatId, t]) => [
+                        seatId,
+                        { color: t.color, tierName: t.tierName, price: t.price },
+                      ]),
+                    ) : undefined}
                   />
                 </CardContent>
               </Card>
@@ -540,15 +604,32 @@ export default function Showing() {
                     {hasTiers ? (
                       isAssignedSeating ? (
                         <>
-                          {(() => {
-                            const tier = priceTiers.find(t => t.id === selectedTierId);
+                          {Array.from(selectedSeats).map(seatId => {
+                            const seat = seats.find(s => s.id === seatId);
+                            if (!seat) return null;
+                            const fallback = priceTiers.reduce((m, t) => (t.price < m.price ? t : m), priceTiers[0]);
+                            const meta = seatTierMap[seatId] ?? {
+                              tierName: fallback.tier_name,
+                              price: fallback.price,
+                              color: 'hsl(var(--primary))',
+                            };
                             return (
-                              <div className="flex justify-between">
-                                <span>{tier?.tier_name} × {selectedSeats.size}</span>
-                                <span>${((tier?.price || 0) * selectedSeats.size).toFixed(2)}</span>
+                              <div key={seatId} className="flex items-center justify-between gap-2">
+                                <span className="flex items-center gap-2 min-w-0">
+                                  <span
+                                    className="h-3 w-3 rounded-sm border border-border shrink-0"
+                                    style={{ backgroundColor: meta.color }}
+                                    aria-hidden
+                                  />
+                                  <span className="truncate">
+                                    Row {seat.seat_row}, Seat {seat.seat_number}
+                                    <span className="text-muted-foreground"> · {meta.tierName}</span>
+                                  </span>
+                                </span>
+                                <span className="tabular-nums">${meta.price.toFixed(2)}</span>
                               </div>
                             );
-                          })()}
+                          })}
                         </>
                       ) : (
                         priceTiers
