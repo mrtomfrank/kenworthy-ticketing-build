@@ -384,6 +384,10 @@ export default function AdminDashboard() {
         <TabsContent value="labor">
           <LaborTab />
         </TabsContent>
+
+        <TabsContent value="sponsors">
+          <SponsorsTab />
+        </TabsContent>
       </Tabs>
     </div>
   );
