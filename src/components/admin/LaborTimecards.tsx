@@ -8,6 +8,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Loader2, Download, AlertTriangle } from 'lucide-react';
 import { format, differenceInMinutes, startOfWeek, endOfWeek } from 'date-fns';
 import { toast } from 'sonner';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 
 interface Shift {
   id: string;
@@ -100,6 +102,70 @@ export function LaborTimecards() {
     URL.revokeObjectURL(url);
   };
 
+  const exportPdf = () => {
+    const doc = new jsPDF({ unit: 'pt', format: 'letter' });
+    const pageWidth = doc.internal.pageSize.getWidth();
+
+    doc.setFontSize(16);
+    doc.text('Kenworthy Performing Arts Centre', 40, 50);
+    doc.setFontSize(12);
+    doc.text('Labor Timecard Report', 40, 70);
+    doc.setFontSize(10);
+    doc.setTextColor(110);
+    doc.text(`Range: ${begin} → ${end}`, 40, 88);
+    doc.text(`Generated: ${format(new Date(), 'PPpp')}`, 40, 102);
+    doc.setTextColor(0);
+
+    // Per-staff subtotals
+    const byStaff = new Map<string, { hours: number; cost: number }>();
+    rows.forEach((r) => {
+      const cur = byStaff.get(r.name) || { hours: 0, cost: 0 };
+      cur.hours += r.hours;
+      cur.cost += r.cost;
+      byStaff.set(r.name, cur);
+    });
+
+    autoTable(doc, {
+      startY: 120,
+      head: [['Staff', 'Hours', 'Labor Cost']],
+      body: Array.from(byStaff.entries()).map(([name, t]) => [
+        name,
+        t.hours.toFixed(2),
+        `$${t.cost.toFixed(2)}`,
+      ]),
+      foot: [['Total', totalHours.toFixed(2), `$${totalCost.toFixed(2)}`]],
+      theme: 'striped',
+      headStyles: { fillColor: [40, 40, 40] },
+      footStyles: { fillColor: [220, 220, 220], textColor: 0, fontStyle: 'bold' },
+    });
+
+    autoTable(doc, {
+      head: [['Staff', 'Clock In', 'Clock Out', 'Hours', 'Labor Cost']],
+      body: rows.map((r) => [
+        r.name,
+        format(new Date(r.start), 'MMM d, h:mm a'),
+        r.end ? format(new Date(r.end), 'MMM d, h:mm a') : 'Open',
+        r.hours.toFixed(2),
+        `$${r.cost.toFixed(2)}`,
+      ]),
+      theme: 'grid',
+      headStyles: { fillColor: [40, 40, 40] },
+      styles: { fontSize: 9 },
+    });
+
+    const finalY = (doc as unknown as { lastAutoTable?: { finalY: number } }).lastAutoTable?.finalY ?? 200;
+    doc.setFontSize(8);
+    doc.setTextColor(140);
+    doc.text(
+      'Sandbox data — labor figures reflect Square sandbox shifts until production credentials are wired.',
+      40,
+      Math.min(finalY + 24, doc.internal.pageSize.getHeight() - 30),
+      { maxWidth: pageWidth - 80 },
+    );
+
+    doc.save(`timecards-${begin}-to-${end}.pdf`);
+  };
+
   return (
     <div className="space-y-4">
       <Card>
@@ -108,6 +174,7 @@ export function LaborTimecards() {
           <div><Label className="text-xs">To</Label><Input type="date" value={end} onChange={(e) => setEnd(e.target.value)} /></div>
           <Button onClick={load} disabled={loading}>{loading ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Refresh'}</Button>
           <Button variant="outline" onClick={exportCsv} disabled={!rows.length}><Download className="h-4 w-4 mr-1" /> CSV</Button>
+          <Button variant="outline" onClick={exportPdf} disabled={!rows.length}><Download className="h-4 w-4 mr-1" /> PDF</Button>
           <div className="ml-auto text-sm text-muted-foreground">
             <span className="mr-4">Total: <strong className="text-foreground">{totalHours.toFixed(2)} h</strong></span>
             <span>Labor cost: <strong className="text-foreground">${totalCost.toFixed(2)}</strong></span>
