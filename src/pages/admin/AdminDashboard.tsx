@@ -216,8 +216,8 @@ export default function AdminDashboard() {
           </div>
         </TabsContent>
 
-        {/* Events Tab */}
-        <TabsContent value="events">
+            </TabsContent>
+            <TabsContent value="events">
           <div className="flex items-center justify-between mb-4">
             <h2 className="font-display text-xl font-bold">Events</h2>
             <Button size="sm" asChild>
@@ -262,8 +262,8 @@ export default function AdminDashboard() {
           </div>
         </TabsContent>
 
-        {/* Live Performances Tab */}
-        <TabsContent value="concerts">
+            </TabsContent>
+            <TabsContent value="concerts">
           <div className="flex items-center justify-between mb-4">
             <h2 className="font-display text-xl font-bold">Performances</h2>
             <Button size="sm" asChild>
@@ -311,6 +311,8 @@ export default function AdminDashboard() {
             ))}
             {concerts.length === 0 && <p className="text-muted-foreground text-center py-8">No live performances yet.</p>}
           </div>
+            </TabsContent>
+          </Tabs>
         </TabsContent>
 
         {/* Concessions Tab */}
