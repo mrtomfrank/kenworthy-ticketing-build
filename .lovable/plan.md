@@ -1,70 +1,58 @@
-## Goal
+## What gets built
 
-Tag every dollar that moves through the app (revenue and expenses) to a QuickBooks Online account, seeded from your 2025 Statement of Activity, editable in admin, exportable to QBO today, and ready to sync live to QBO later.
+A visual seat-group → price-tier editor that lives on each Movie, Event, and Live Performance form. Showings inherit that map, and any admin/staff can override the map on a single showing without touching the production template.
 
-## Phase 1 — Chart of Accounts foundation
+## Data model
 
-**New tables**
+Two new tables, both venue-aware:
 
-- `chart_of_accounts` — `code` (e.g. `4100-RNT-GEN`), `name`, `qbo_account_name` (exact QBO match), `qbo_account_id` (nullable, filled after live sync), `account_type` (`income` | `expense` | `other_income` | `other_expense` | `contra_income`), `parent_id` (self-FK for groups like Sponsorships → Film sponsorships), `is_active`, `sort_order`, `notes`.
-- `account_mappings` — links app-side sources to a `chart_of_accounts.id`. Source is a `(source_type, source_key)` pair:
-  - `source_type` ∈ `ticket_type`, `pass_type`, `concession_item`, `concession_category`, `merch_item`, `rental_line_kind`, `donation_designation`, `sponsorship_program`, `tip`, `sales_tax`, `expense_category`, `payroll_category`, `discount`, `refund`, `square_fee`, `bank_fee`, `interest`, `grant_program`, `capital_line`.
-  - `source_key` is a free-text or FK-string (e.g. `film`, `met_live`, `silent_film_fest`, or a specific `concession_items.id`).
-  - One row per source; `default = true` means fallback when no specific override.
-- `financial_entries` already exists (47 cols) — we add `account_id uuid references chart_of_accounts` and a backfill that resolves it from `account_mappings` based on the entry's source.
+- `production_price_tiers` — tier templates owned by a production.
+  - `production_type` ('movie' | 'event' | 'concert'), `production_id`
+  - `tier_name`, `price`, `color` (hex for the map swatch), `display_order`
+- `production_seat_tiers` — which template tier each seat belongs to.
+  - `production_type`, `production_id`, `venue_seat_id`, `tier_template_id`
+  - unique on (production_type, production_id, venue_seat_id)
 
-**Seed migration** loads the ~60 accounts from your 2025 Statement of Activity, grouped exactly as in the PDF (Contributed income → Sponsorships → Film sponsorships, etc., and Expenditures → Event expenses → Film Expenses → Film Licensing, etc., including contra accounts like Non-profit discounts, Discounts, Returns).
+Per-showing override table:
 
-## Phase 2 — Admin: Chart of Accounts editor
+- `showing_seat_tiers` — seat → tier mapping for a specific showing.
+  - `showing_id`, `venue_seat_id`, `tier_id` (FK to existing `showing_price_tiers`)
+  - unique on (showing_id, venue_seat_id)
 
-New tab under **Analytics → Accounting** (Chart of Accounts):
+`showing_price_tiers` already exists and stays as the live, billable source of truth (the `enforce_ticket_pricing` trigger keeps reading it). When a showing is created from a production, both `showing_price_tiers` and `showing_seat_tiers` are populated by copying the production template.
 
-- Tree view of accounts (collapsible parents).
-- Add / rename / deactivate accounts, edit `qbo_account_name`, reorder, set parent.
-- Per-source mapping panels:
-  - **Ticket types** (Film, Live Event, Met Live, NT Live) → income accounts
-  - **Pass types** (Film Pass, Met Live Pass, Movie Night Gift Cards, Silent Film Fest Pass) → income accounts
-  - **Concession items / categories** → Concessions income; Discounts contra
-  - **Merchandise** → Merchandise / Discounts on Merchandise
-  - **Rental line kinds** (General, Live Theater, Fees, Film Licensing Fees, Non-profit discount, Poster print, Marquee, Rental Ticket Sales) → Rentals accounts
-  - **Donation designations** (Business, Individual, Monthly, Jar, Marquee Restoration, EOY, Unrestricted Capital, Fall Banquet) → Donations / Capital accounts
-  - **Sponsorship programs** (Black History Month, Film, Live event, Met Live, Saturday Cartoons, Silent Film Festival, Summer Family Matinee) → Sponsorships accounts
-  - **Tips** → Tips
-  - **Sales Tax Collected / Sales Tax (expense)** → tax accounts
-  - **Expense categories** (everything under Expenditures: Advertising sub-accounts, Contract labor → Artist fees / Sound tech, Contracted Programming → Met Live / NT Live, Film Expenses → DVD/Bluray / Booking / Licensing / Shipping, Facilities → Maintenance × 3 / Utilities × 3, G&A → Bank fees / Square Fees / Accounting / Insurance / etc., Payroll → Tax / Salaries × 4 / Wages, Capital sub-lines)
-- "Default" toggle so unmapped sources fall back to a configured catch-all per source_type.
+A `gain_color` column is added to `showing_price_tiers` so the seat map can show consistent tier colors on the customer side.
 
-## Phase 3 — Tagging at the source
+## UI
 
-Wherever we already write to `financial_entries` (ticket sales, pass sales, concession sales, rental invoices, donations, sponsorships, refunds, tips, sales tax, manual expense entries), resolve `account_id` at write time using `account_mappings`. A trigger on `financial_entries` enforces it: if `account_id` is null at insert, look up the mapping; if no mapping exists, fall back to source_type default; if still null, flag the row `needs_account_review = true` rather than failing.
+**Movie / Event / Performance forms**
 
-Rental invoices specifically: each invoice line gets `account_id`, defaulting from `rental_line_kind`, overridable per line by staff before sending.
+A new "Seat pricing" section appears when the production has at least one venue with assigned seating. It shows:
 
-## Phase 4 — QBO-formatted export
+1. A tier list (name, price, color swatch, +/- buttons) — same controls already used on the Showing form, with a color picker added.
+2. The venue seat map (using the existing `SeatMap` layout, repurposed for editing). Admin picks a tier from the list, then clicks individual seats or click-and-drags to paint a region. Seats not assigned to any tier fall back to the lowest-priced tier on save.
+3. A "Reset all" button and a per-tier count read-out (e.g. "Main Floor — 142 seats · $12").
 
-New admin screen **Analytics → Accounting → Export**:
+The selected venue for the production template is the venue with assigned seating most commonly used (in practice, the main Kenworthy auditorium). If a production spans multiple venues, the editor switches via a venue picker.
 
-- Date range picker, account filter, "include unmapped" toggle.
-- Two output formats:
-  1. **Journal Entry CSV** — one row per (account, date), debit/credit, memo. Importable into QBO via Transaction Pro / SaaSAnt or copy-paste into a Journal Entry.
-  2. **IIF** — classic QBO desktop format, useful as a universal fallback.
-- Group by QBO account name, not internal code, so the file matches the user's QBO chart.
-- Warns on any `needs_account_review` rows in range and links to a fix-up queue.
+**Showing form**
 
-## Phase 5 — Live QBO sync (deferred wiring, built but inactive)
+The existing tier list stays. A new collapsible "Customize seat map for this showing" panel below it loads the production's seat map as the starting state, then lets the admin paint over it for this showing only. Saving writes `showing_price_tiers` + `showing_seat_tiers` for that showing without touching the production template.
 
-- Edge function `qbo-sync` with stubs for: OAuth start/callback, refresh token storage, account list pull (to populate `qbo_account_id` by exact-name match against `qbo_account_name`), invoice push, journal entry push.
-- Requires Intuit Developer app credentials when activated: `QBO_CLIENT_ID`, `QBO_CLIENT_SECRET`, `QBO_ENVIRONMENT` (sandbox/production), `QBO_REDIRECT_URI`. We don't ask for them now — admin screen surfaces a "Connect QuickBooks" button that prompts for these when first clicked.
-- Sync queue table `qbo_sync_jobs` with status (`pending`, `synced`, `failed`, `skipped_unmapped`) so nothing pushes to QBO with a missing account.
+**Customer Showing page**
 
-## What ships in this build
+`SeatMap` is updated to render each seat in its tier color (with a legend showing tier name + price). When the customer selects seats from multiple tiers, the cart line items break out by tier. Tier color falls back to neutral if a seat has no mapping.
 
-Phases 1–4 fully shipped. Phase 5 scaffolding (tables, edge function shell, admin "Connect" button) included but disabled until you provide Intuit creds.
+## Server-side integrity
 
-## Technical notes
+- `enforce_ticket_pricing` is extended: when a `seat_id` is present and the showing has `showing_seat_tiers` rows, the trigger looks up the seat's tier and uses that tier's price — the client cannot send a cheaper tier than the seat allows.
+- A helper `apply_production_template_to_showing(showing_id)` copies the production's tiers + seat map into a fresh showing row, called both from the Showing form and as a fallback in a trigger when a new showing has no tiers of its own.
 
-- All new tables: `GRANT` to `authenticated` (admin reads via RLS using `has_role`), `service_role` full; only admins can mutate accounts/mappings.
-- Seed uses stable `code` values so admins can rename without breaking mappings.
-- Contra accounts (Non-profit discounts, Discounts, Returns, Discounts on Merchandise) are negative-balance income — exported as credits to the same parent, debits to contra child, matching how QBO expects.
-- Capital section in your PDF mixes income and expense lines; we model those as `other_income` / `other_expense` so they don't pollute operating P&L.
-- No client-side price/account trust — `account_id` is resolved server-side from the mapping table.
+## RLS
+
+- `production_price_tiers`, `production_seat_tiers`, `showing_seat_tiers`: admins/staff can manage; public can SELECT (needed for the customer seat map to render tier colors and prices).
+
+## Out of scope for this PR
+
+- Lasso (drag-rectangle) selection — first cut uses click + shift-click ranges; drag-paint can be added later if the click-only flow feels slow.
+- Tier-aware reporting in QBO export — current account mapping is by ticket type, not tier; revisit if needed.
