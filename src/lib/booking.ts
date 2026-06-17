@@ -11,6 +11,7 @@ export interface PriceTier {
   tier_name: string;
   price: number;
   display_order: number;
+  color?: string | null;
 }
 
 export const TAX_RATE = 0.06;
