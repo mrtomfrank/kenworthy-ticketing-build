@@ -32,6 +32,7 @@ export default function AdminDashboard() {
   const [events, setEvents] = useState<any[]>([]);
   const [concerts, setConcerts] = useState<any[]>([]);
   const [showings, setShowings] = useState<any[]>([]);
+  const [tickets, setTickets] = useState<any[]>([]);
   const [ticketCount, setTicketCount] = useState(0);
 
   useEffect(() => {
@@ -46,18 +47,44 @@ export default function AdminDashboard() {
       supabase.from('events').select('*').order('created_at', { ascending: false }),
       supabase.from('live_performances').select('*').order('created_at', { ascending: false }),
       supabase.from('showings').select('*, movies(title), events(title), live_performances(title), venues(name)').order('start_time', { ascending: false }),
-      supabase.from('tickets').select('id', { count: 'exact' }),
+      supabase.from('tickets').select('id, showing_id'),
     ]);
     setMovies(moviesRes.data || []);
     setEvents(eventsRes.data || []);
     setConcerts(concertsRes.data || []);
     setShowings(showingsRes.data || []);
-    setTicketCount(ticketsRes.count || 0);
+    setTickets(ticketsRes.data || []);
+    setTicketCount(ticketsRes.data?.length || 0);
   }
+
 
   const getMovieShowings = (movieId: string) => showings.filter(s => s.movie_id === movieId);
 
+  const getTicketsSoldForShowing = (showingId: string) =>
+    tickets.filter(t => t.showing_id === showingId).length;
+
+  const getTicketsSoldForEvent = (eventId: string) => {
+    const eventShowings = showings.filter(s => s.event_id === eventId);
+    const sold = tickets.filter(t => eventShowings.some((sh: any) => sh.id === t.showing_id)).length;
+    const capacity = eventShowings.reduce((sum, sh) => sum + (sh.total_seats || 0), 0);
+    return { sold, capacity };
+  };
+
+  const getTicketsSoldForConcert = (concertId: string) => {
+    const concertShowings = showings.filter(s => s.live_performance_id === concertId);
+    const sold = tickets.filter(t => concertShowings.some((sh: any) => sh.id === t.showing_id)).length;
+    const capacity = concertShowings.reduce((sum, sh) => sum + (sh.total_seats || 0), 0);
+    return { sold, capacity };
+  };
+
+  const TicketCountBadge = ({ sold, capacity }: { sold: number; capacity: number }) => (
+    <Badge variant="secondary" className="text-xs whitespace-nowrap" title={`${sold} of ${capacity} tickets sold`}>
+      {sold} / {capacity}
+    </Badge>
+  );
+
   const deleteItem = async (table: 'movies' | 'events' | 'live_performances' | 'showings', id: string, label: string) => {
+
     if (!confirm(`Delete this ${label}?`)) return;
     const { error } = await supabase.from(table).delete().eq('id', id);
     if (error) toast.error(error.message);
