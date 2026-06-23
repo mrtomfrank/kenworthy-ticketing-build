@@ -34,6 +34,7 @@ interface ShowingOption {
   movie_title: string;
   requires_seat_selection: boolean;
   total_seats: number;
+  pass_processing_fee: boolean;
 }
 
 type PaymentStatus = 'idle' | 'processing' | 'completed' | 'failed';
@@ -100,7 +101,7 @@ export default function StaffPOS() {
     async function loadShowings() {
       const { data } = await supabase
         .from('showings')
-        .select('id, start_time, ticket_price, total_seats, requires_seat_selection, movies(title)')
+        .select('id, start_time, ticket_price, total_seats, requires_seat_selection, movies(title, pass_processing_fee)')
         .eq('is_active', true)
         .gte('start_time', new Date().toISOString())
         .order('start_time');
@@ -113,6 +114,7 @@ export default function StaffPOS() {
           movie_title: s.movies?.title || 'Unknown',
           requires_seat_selection: s.requires_seat_selection ?? false,
           total_seats: s.total_seats ?? 200,
+          pass_processing_fee: !!s.movies?.pass_processing_fee,
         }))
       );
     }
