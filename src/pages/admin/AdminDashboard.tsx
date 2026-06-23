@@ -228,7 +228,8 @@ export default function AdminDashboard() {
                                 <Badge variant="secondary" className="text-xs">{showing.venues.name}</Badge>
                               )}
                             </div>
-                            <div className="flex gap-1">
+                            <div className="flex items-center gap-1">
+                              <TicketCountBadge sold={getTicketsSoldForShowing(showing.id)} capacity={showing.total_seats || 0} />
                               <Button variant="ghost" size="sm" asChild>
                                 <Link to={`/admin/showings/${showing.id}`}><Edit className="h-3.5 w-3.5" /></Link>
                               </Button>
@@ -255,39 +256,43 @@ export default function AdminDashboard() {
             </Button>
           </div>
           <div className="space-y-3">
-            {events.map(event => (
-              <Card key={event.id} className="glass">
-                <CardContent className="p-4 flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <PartyPopper className="h-5 w-5 text-primary" />
-                    <div>
-                      <p className="font-medium">{event.title}</p>
-                      <div className="flex gap-2 mt-1">
-                        <Badge variant="outline" className="text-xs capitalize">{event.ticket_type.replace('_', ' ')}</Badge>
-                        <Badge variant={event.is_active ? 'default' : 'secondary'} className="text-xs">
-                          {event.is_active ? 'Active' : 'Inactive'}
-                        </Badge>
+            {events.map(event => {
+              const { sold, capacity } = getTicketsSoldForEvent(event.id);
+              return (
+                <Card key={event.id} className="glass">
+                  <CardContent className="p-4 flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <PartyPopper className="h-5 w-5 text-primary" />
+                      <div>
+                        <p className="font-medium">{event.title}</p>
+                        <div className="flex gap-2 mt-1">
+                          <Badge variant="outline" className="text-xs capitalize">{event.ticket_type.replace('_', ' ')}</Badge>
+                          <Badge variant={event.is_active ? 'default' : 'secondary'} className="text-xs">
+                            {event.is_active ? 'Active' : 'Inactive'}
+                          </Badge>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                  <div className="flex gap-1">
-                    <Button variant="ghost" size="sm" title="Export contacts" onClick={async () => {
-                      const count = await exportContactsCsv('event', event.id, event.title);
-                      if (count === null) toast.info('No attendees found');
-                      else toast.success(`Exported ${count} contacts`);
-                    }}>
-                      <Download className="h-4 w-4" />
-                    </Button>
-                    <Button variant="ghost" size="sm" asChild>
-                      <Link to={`/admin/events/${event.id}`}><Edit className="h-4 w-4" /></Link>
-                    </Button>
-                    <Button variant="ghost" size="sm" onClick={() => deleteItem('events', event.id, 'Event')}>
-                      <Trash2 className="h-4 w-4 text-destructive" />
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
+                    <div className="flex items-center gap-1">
+                      <TicketCountBadge sold={sold} capacity={capacity} />
+                      <Button variant="ghost" size="sm" title="Export contacts" onClick={async () => {
+                        const count = await exportContactsCsv('event', event.id, event.title);
+                        if (count === null) toast.info('No attendees found');
+                        else toast.success(`Exported ${count} contacts`);
+                      }}>
+                        <Download className="h-4 w-4" />
+                      </Button>
+                      <Button variant="ghost" size="sm" asChild>
+                        <Link to={`/admin/events/${event.id}`}><Edit className="h-4 w-4" /></Link>
+                      </Button>
+                      <Button variant="ghost" size="sm" onClick={() => deleteItem('events', event.id, 'Event')}>
+                        <Trash2 className="h-4 w-4 text-destructive" />
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              );
+            })}
             {events.length === 0 && <p className="text-muted-foreground text-center py-8">No events yet.</p>}
           </div>
             </TabsContent>
