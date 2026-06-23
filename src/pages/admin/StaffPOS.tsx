@@ -24,7 +24,7 @@ import { PaymentMethodSelector, type PaymentMethod } from '@/components/pos/Paym
 import { ConcessionPOS } from '@/components/pos/ConcessionPOS';
 import { FilmPassPOS } from '@/components/pos/FilmPassPOS';
 import { TimeClockWidget } from '@/components/pos/TimeClockWidget';
-import { type Seat, type PriceTier, type TicketLineItem, buildTicketRows, computeLineItemTotals, computeOrderTotals, TAX_RATE } from '@/lib/booking';
+import { type Seat, type PriceTier, type TicketLineItem, buildTicketRows, computeLineItemTotals, computeOrderTotals, computeProcessingFee, TAX_RATE } from '@/lib/booking';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 interface ShowingOption {
@@ -34,6 +34,7 @@ interface ShowingOption {
   movie_title: string;
   requires_seat_selection: boolean;
   total_seats: number;
+  pass_processing_fee: boolean;
 }
 
 type PaymentStatus = 'idle' | 'processing' | 'completed' | 'failed';
@@ -100,7 +101,7 @@ export default function StaffPOS() {
     async function loadShowings() {
       const { data } = await supabase
         .from('showings')
-        .select('id, start_time, ticket_price, total_seats, requires_seat_selection, movies(title)')
+        .select('id, start_time, ticket_price, total_seats, requires_seat_selection, movies(title, pass_processing_fee)')
         .eq('is_active', true)
         .gte('start_time', new Date().toISOString())
         .order('start_time');
@@ -113,6 +114,7 @@ export default function StaffPOS() {
           movie_title: s.movies?.title || 'Unknown',
           requires_seat_selection: s.requires_seat_selection ?? false,
           total_seats: s.total_seats ?? 200,
+          pass_processing_fee: !!s.movies?.pass_processing_fee,
         }))
       );
     }
@@ -223,6 +225,13 @@ export default function StaffPOS() {
     ? computeLineItemTotals(lineItems)
     : computeOrderTotals(ticketCount, selectedShowing?.ticket_price || 0);
 
+  // Buyer-paid Square processing fee, only when host opted in AND the buyer
+  // is paying by card on the Terminal. Cash sales never carry the surcharge.
+  const passProcessingFee =
+    !!selectedShowing?.pass_processing_fee && paymentMethod === 'card' && total > 0;
+  const processingFee = passProcessingFee ? computeProcessingFee(total, 'in_person').fee : 0;
+  const grandTotal = Math.round((total + processingFee) * 100) / 100;
+
   const toggleSeat = (seatId: string) => {
     if (takenSeatIds.has(seatId)) return;
     setSelectedSeats(prev => {
@@ -285,13 +294,13 @@ export default function StaffPOS() {
       ticketIds,
       movieTitle: selectedShowing?.movie_title || 'Unknown',
       seatLabels,
-      total,
+      total: grandTotal,
       paymentMethod: method,
       timestamp: new Date(),
       refunded: false,
     };
     setTransactions(prev => [tx, ...prev]);
-  }, [selectedSeats, seats, selectedShowing, total, isAssignedSeating, gaQuantity, hasTiers, lineItems]);
+  }, [selectedSeats, seats, selectedShowing, grandTotal, isAssignedSeating, gaQuantity, hasTiers, lineItems]);
 
   const resetForm = useCallback(() => {
     setSelectedSeats(new Set());
@@ -330,7 +339,7 @@ export default function StaffPOS() {
 
     try {
       const idempotencyKey = crypto.randomUUID();
-      const amountCents = Math.round(total * 100);
+      const amountCents = Math.round(grandTotal * 100);
 
       const { data, error } = await supabase.functions.invoke('square-terminal', {
         body: {
@@ -719,9 +728,15 @@ export default function StaffPOS() {
                       <span className="text-muted-foreground">Tax (6%)</span>
                       <span>${tax.toFixed(2)}</span>
                     </div>
+                    {processingFee > 0 && (
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Card processing fee</span>
+                        <span>${processingFee.toFixed(2)}</span>
+                      </div>
+                    )}
                     <div className="flex justify-between font-bold text-base pt-1">
                       <span>Total</span>
-                      <span className="text-primary">${total.toFixed(2)}</span>
+                      <span className="text-primary">${grandTotal.toFixed(2)}</span>
                     </div>
                   </div>
 
@@ -771,7 +786,7 @@ export default function StaffPOS() {
                         )}
                         {paymentMethod === 'cash'
                           ? `Sell ${ticketCount} Ticket(s) — Cash`
-                          : `Charge $${total.toFixed(2)} on Terminal`
+                          : `Charge $${grandTotal.toFixed(2)} on Terminal`
                         }
                       </>
                     )}

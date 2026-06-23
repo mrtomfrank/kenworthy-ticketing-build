@@ -11,7 +11,7 @@ import { format } from 'date-fns';
 import { Film, Calendar, Clock, DollarSign, Check, Minus, Plus, MapPin, Sparkles, Music, CreditCard } from 'lucide-react';
 import { SeatMap } from '@/components/SeatMap';
 import { GuestCheckoutForm } from '@/components/GuestCheckoutForm';
-import { type Seat, type PriceTier, TAX_RATE, buildTicketRows, computeOrderTotals, computeLineItemTotals, type TicketLineItem } from '@/lib/booking';
+import { type Seat, type PriceTier, TAX_RATE, buildTicketRows, computeOrderTotals, computeLineItemTotals, computeProcessingFee, type TicketLineItem } from '@/lib/booking';
 import { PreviouslyScreened } from '@/components/PreviouslyScreened';
 import { SEO } from '@/components/SEO';
 
@@ -240,6 +240,12 @@ export default function Showing() {
     tax = result.tax;
     total = result.total;
   }
+
+  // Optional buyer-paid Square processing fee (per production toggle).
+  // Film-pass redemptions don't run through Square, so skip the surcharge.
+  const passProcessingFee = !!production?.pass_processing_fee && !useFilmPass && total > 0;
+  const processingFee = passProcessingFee ? computeProcessingFee(total, 'online').fee : 0;
+  const grandTotal = Math.round((total + processingFee) * 100) / 100;
 
   // Film pass: check if selected pass covers the total
   const selectedPass = userPasses.find((p: any) => p.id === selectedPassId);
@@ -669,9 +675,15 @@ export default function Showing() {
                       <span className="text-muted-foreground">Tax (6% ID)</span>
                       <span>${tax.toFixed(2)}</span>
                     </div>
+                    {processingFee > 0 && (
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Card processing fee</span>
+                        <span>${processingFee.toFixed(2)}</span>
+                      </div>
+                    )}
                     <div className="flex justify-between font-bold text-base pt-1">
                       <span>Total</span>
-                      <span className="text-primary">${total.toFixed(2)}</span>
+                      <span className="text-primary">${grandTotal.toFixed(2)}</span>
                     </div>
                   </div>
 
@@ -733,7 +745,7 @@ export default function Showing() {
                   ) : (
                     <GuestCheckoutForm
                       ticketCount={ticketCount}
-                      total={total}
+                      total={grandTotal}
                       purchasing={purchasing}
                       onPurchase={handleGuestPurchase}
                     />
