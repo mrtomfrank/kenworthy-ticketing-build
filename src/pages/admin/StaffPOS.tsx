@@ -254,6 +254,7 @@ export default function StaffPOS() {
       showingId: selectedShowingId,
       ticketPrice: !hasTiers ? selectedShowing!.ticket_price : undefined,
       paymentMethod: method,
+      processingFee: method === 'card' ? processingFee : 0,
     });
 
     const { data, error } = await supabase.from('tickets').insert(ticketRows).select('id');
