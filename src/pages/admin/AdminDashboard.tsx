@@ -304,44 +304,48 @@ export default function AdminDashboard() {
             </Button>
           </div>
           <div className="space-y-3">
-            {concerts.map(concert => (
-              <Card key={concert.id} className="glass">
-                <CardContent className="p-4 flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <Music className="h-5 w-5 text-primary" />
-                    <div>
-                      <p className="font-medium">{concert.title}</p>
-                      <div className="flex gap-2 mt-1">
-                        {concert.subcategory && (
-                          <Badge variant="outline" className="text-xs capitalize">
-                            {concert.subcategory.replace(/_/g, ' ')}
+            {concerts.map(concert => {
+              const { sold, capacity } = getTicketsSoldForConcert(concert.id);
+              return (
+                <Card key={concert.id} className="glass">
+                  <CardContent className="p-4 flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <Music className="h-5 w-5 text-primary" />
+                      <div>
+                        <p className="font-medium">{concert.title}</p>
+                        <div className="flex gap-2 mt-1">
+                          {concert.subcategory && (
+                            <Badge variant="outline" className="text-xs capitalize">
+                              {concert.subcategory.replace(/_/g, ' ')}
+                            </Badge>
+                          )}
+                          {concert.genre && <Badge variant="outline" className="text-xs">{concert.genre}</Badge>}
+                          <Badge variant={concert.is_active ? 'default' : 'secondary'} className="text-xs">
+                            {concert.is_active ? 'Active' : 'Inactive'}
                           </Badge>
-                        )}
-                        {concert.genre && <Badge variant="outline" className="text-xs">{concert.genre}</Badge>}
-                        <Badge variant={concert.is_active ? 'default' : 'secondary'} className="text-xs">
-                          {concert.is_active ? 'Active' : 'Inactive'}
-                        </Badge>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                  <div className="flex gap-1">
-                    <Button variant="ghost" size="sm" title="Export contacts" onClick={async () => {
-                      const count = await exportContactsCsv('concert', concert.id, concert.title);
-                      if (count === null) toast.info('No attendees found');
-                      else toast.success(`Exported ${count} contacts`);
-                    }}>
-                      <Download className="h-4 w-4" />
-                    </Button>
-                    <Button variant="ghost" size="sm" asChild>
-                      <Link to={`/admin/concerts/${concert.id}`}><Edit className="h-4 w-4" /></Link>
-                    </Button>
-                    <Button variant="ghost" size="sm" onClick={() => deleteItem('live_performances', concert.id, 'Live Performance')}>
-                      <Trash2 className="h-4 w-4 text-destructive" />
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
+                    <div className="flex items-center gap-1">
+                      <TicketCountBadge sold={sold} capacity={capacity} />
+                      <Button variant="ghost" size="sm" title="Export contacts" onClick={async () => {
+                        const count = await exportContactsCsv('concert', concert.id, concert.title);
+                        if (count === null) toast.info('No attendees found');
+                        else toast.success(`Exported ${count} contacts`);
+                      }}>
+                        <Download className="h-4 w-4" />
+                      </Button>
+                      <Button variant="ghost" size="sm" asChild>
+                        <Link to={`/admin/concerts/${concert.id}`}><Edit className="h-4 w-4" /></Link>
+                      </Button>
+                      <Button variant="ghost" size="sm" onClick={() => deleteItem('live_performances', concert.id, 'Live Performance')}>
+                        <Trash2 className="h-4 w-4 text-destructive" />
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              );
+            })}
             {concerts.length === 0 && <p className="text-muted-foreground text-center py-8">No live performances yet.</p>}
           </div>
             </TabsContent>
