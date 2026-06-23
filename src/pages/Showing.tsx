@@ -675,9 +675,15 @@ export default function Showing() {
                       <span className="text-muted-foreground">Tax (6% ID)</span>
                       <span>${tax.toFixed(2)}</span>
                     </div>
+                    {processingFee > 0 && (
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Card processing fee</span>
+                        <span>${processingFee.toFixed(2)}</span>
+                      </div>
+                    )}
                     <div className="flex justify-between font-bold text-base pt-1">
                       <span>Total</span>
-                      <span className="text-primary">${total.toFixed(2)}</span>
+                      <span className="text-primary">${grandTotal.toFixed(2)}</span>
                     </div>
                   </div>
 
