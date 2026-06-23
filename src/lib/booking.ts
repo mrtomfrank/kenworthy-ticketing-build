@@ -141,3 +141,26 @@ export function computeLineItemTotals(lineItems: TicketLineItem[]) {
   const total = Math.round((subtotal + tax) * 100) / 100;
   return { subtotal, tax, total, totalCount };
 }
+
+// Square processing fee rates (sandbox-aligned with production pricing).
+// We compute the buyer-facing surcharge by "grossing up" so the venue nets
+// the full ticket subtotal + tax after Square takes its cut from the charge.
+//   total = (net + fixed) / (1 - pct)
+//   fee   = total - net
+// Sources: squareup.com/us/en/pricing
+//   - Online / keyed entry: 2.9% + $0.30
+//   - In-person (Terminal / card-present): 2.6% + $0.10
+export const SQUARE_RATES = {
+  online:    { pct: 0.029, fixed: 0.30 },
+  in_person: { pct: 0.026, fixed: 0.10 },
+} as const;
+
+export type ProcessingChannel = keyof typeof SQUARE_RATES;
+
+export function computeProcessingFee(netAmount: number, channel: ProcessingChannel) {
+  const { pct, fixed } = SQUARE_RATES[channel];
+  const grossed = (netAmount + fixed) / (1 - pct);
+  const total = Math.round(grossed * 100) / 100;
+  const fee = Math.round((total - netAmount) * 100) / 100;
+  return { fee, total };
+}
