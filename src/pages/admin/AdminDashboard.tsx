@@ -32,6 +32,7 @@ export default function AdminDashboard() {
   const [events, setEvents] = useState<any[]>([]);
   const [concerts, setConcerts] = useState<any[]>([]);
   const [showings, setShowings] = useState<any[]>([]);
+  const [tickets, setTickets] = useState<any[]>([]);
   const [ticketCount, setTicketCount] = useState(0);
 
   useEffect(() => {
@@ -46,18 +47,44 @@ export default function AdminDashboard() {
       supabase.from('events').select('*').order('created_at', { ascending: false }),
       supabase.from('live_performances').select('*').order('created_at', { ascending: false }),
       supabase.from('showings').select('*, movies(title), events(title), live_performances(title), venues(name)').order('start_time', { ascending: false }),
-      supabase.from('tickets').select('id', { count: 'exact' }),
+      supabase.from('tickets').select('id, showing_id'),
     ]);
     setMovies(moviesRes.data || []);
     setEvents(eventsRes.data || []);
     setConcerts(concertsRes.data || []);
     setShowings(showingsRes.data || []);
-    setTicketCount(ticketsRes.count || 0);
+    setTickets(ticketsRes.data || []);
+    setTicketCount(ticketsRes.data?.length || 0);
   }
+
 
   const getMovieShowings = (movieId: string) => showings.filter(s => s.movie_id === movieId);
 
+  const getTicketsSoldForShowing = (showingId: string) =>
+    tickets.filter(t => t.showing_id === showingId).length;
+
+  const getTicketsSoldForEvent = (eventId: string) => {
+    const eventShowings = showings.filter(s => s.event_id === eventId);
+    const sold = tickets.filter(t => eventShowings.some((sh: any) => sh.id === t.showing_id)).length;
+    const capacity = eventShowings.reduce((sum, sh) => sum + (sh.total_seats || 0), 0);
+    return { sold, capacity };
+  };
+
+  const getTicketsSoldForConcert = (concertId: string) => {
+    const concertShowings = showings.filter(s => s.live_performance_id === concertId);
+    const sold = tickets.filter(t => concertShowings.some((sh: any) => sh.id === t.showing_id)).length;
+    const capacity = concertShowings.reduce((sum, sh) => sum + (sh.total_seats || 0), 0);
+    return { sold, capacity };
+  };
+
+  const TicketCountBadge = ({ sold, capacity }: { sold: number; capacity: number }) => (
+    <Badge variant="secondary" className="text-xs whitespace-nowrap" title={`${sold} of ${capacity} tickets sold`}>
+      {sold} / {capacity}
+    </Badge>
+  );
+
   const deleteItem = async (table: 'movies' | 'events' | 'live_performances' | 'showings', id: string, label: string) => {
+
     if (!confirm(`Delete this ${label}?`)) return;
     const { error } = await supabase.from(table).delete().eq('id', id);
     if (error) toast.error(error.message);
@@ -201,7 +228,8 @@ export default function AdminDashboard() {
                                 <Badge variant="secondary" className="text-xs">{showing.venues.name}</Badge>
                               )}
                             </div>
-                            <div className="flex gap-1">
+                            <div className="flex items-center gap-1">
+                              <TicketCountBadge sold={getTicketsSoldForShowing(showing.id)} capacity={showing.total_seats || 0} />
                               <Button variant="ghost" size="sm" asChild>
                                 <Link to={`/admin/showings/${showing.id}`}><Edit className="h-3.5 w-3.5" /></Link>
                               </Button>
@@ -228,39 +256,43 @@ export default function AdminDashboard() {
             </Button>
           </div>
           <div className="space-y-3">
-            {events.map(event => (
-              <Card key={event.id} className="glass">
-                <CardContent className="p-4 flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <PartyPopper className="h-5 w-5 text-primary" />
-                    <div>
-                      <p className="font-medium">{event.title}</p>
-                      <div className="flex gap-2 mt-1">
-                        <Badge variant="outline" className="text-xs capitalize">{event.ticket_type.replace('_', ' ')}</Badge>
-                        <Badge variant={event.is_active ? 'default' : 'secondary'} className="text-xs">
-                          {event.is_active ? 'Active' : 'Inactive'}
-                        </Badge>
+            {events.map(event => {
+              const { sold, capacity } = getTicketsSoldForEvent(event.id);
+              return (
+                <Card key={event.id} className="glass">
+                  <CardContent className="p-4 flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <PartyPopper className="h-5 w-5 text-primary" />
+                      <div>
+                        <p className="font-medium">{event.title}</p>
+                        <div className="flex gap-2 mt-1">
+                          <Badge variant="outline" className="text-xs capitalize">{event.ticket_type.replace('_', ' ')}</Badge>
+                          <Badge variant={event.is_active ? 'default' : 'secondary'} className="text-xs">
+                            {event.is_active ? 'Active' : 'Inactive'}
+                          </Badge>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                  <div className="flex gap-1">
-                    <Button variant="ghost" size="sm" title="Export contacts" onClick={async () => {
-                      const count = await exportContactsCsv('event', event.id, event.title);
-                      if (count === null) toast.info('No attendees found');
-                      else toast.success(`Exported ${count} contacts`);
-                    }}>
-                      <Download className="h-4 w-4" />
-                    </Button>
-                    <Button variant="ghost" size="sm" asChild>
-                      <Link to={`/admin/events/${event.id}`}><Edit className="h-4 w-4" /></Link>
-                    </Button>
-                    <Button variant="ghost" size="sm" onClick={() => deleteItem('events', event.id, 'Event')}>
-                      <Trash2 className="h-4 w-4 text-destructive" />
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
+                    <div className="flex items-center gap-1">
+                      <TicketCountBadge sold={sold} capacity={capacity} />
+                      <Button variant="ghost" size="sm" title="Export contacts" onClick={async () => {
+                        const count = await exportContactsCsv('event', event.id, event.title);
+                        if (count === null) toast.info('No attendees found');
+                        else toast.success(`Exported ${count} contacts`);
+                      }}>
+                        <Download className="h-4 w-4" />
+                      </Button>
+                      <Button variant="ghost" size="sm" asChild>
+                        <Link to={`/admin/events/${event.id}`}><Edit className="h-4 w-4" /></Link>
+                      </Button>
+                      <Button variant="ghost" size="sm" onClick={() => deleteItem('events', event.id, 'Event')}>
+                        <Trash2 className="h-4 w-4 text-destructive" />
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              );
+            })}
             {events.length === 0 && <p className="text-muted-foreground text-center py-8">No events yet.</p>}
           </div>
             </TabsContent>
@@ -272,44 +304,48 @@ export default function AdminDashboard() {
             </Button>
           </div>
           <div className="space-y-3">
-            {concerts.map(concert => (
-              <Card key={concert.id} className="glass">
-                <CardContent className="p-4 flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <Music className="h-5 w-5 text-primary" />
-                    <div>
-                      <p className="font-medium">{concert.title}</p>
-                      <div className="flex gap-2 mt-1">
-                        {concert.subcategory && (
-                          <Badge variant="outline" className="text-xs capitalize">
-                            {concert.subcategory.replace(/_/g, ' ')}
+            {concerts.map(concert => {
+              const { sold, capacity } = getTicketsSoldForConcert(concert.id);
+              return (
+                <Card key={concert.id} className="glass">
+                  <CardContent className="p-4 flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <Music className="h-5 w-5 text-primary" />
+                      <div>
+                        <p className="font-medium">{concert.title}</p>
+                        <div className="flex gap-2 mt-1">
+                          {concert.subcategory && (
+                            <Badge variant="outline" className="text-xs capitalize">
+                              {concert.subcategory.replace(/_/g, ' ')}
+                            </Badge>
+                          )}
+                          {concert.genre && <Badge variant="outline" className="text-xs">{concert.genre}</Badge>}
+                          <Badge variant={concert.is_active ? 'default' : 'secondary'} className="text-xs">
+                            {concert.is_active ? 'Active' : 'Inactive'}
                           </Badge>
-                        )}
-                        {concert.genre && <Badge variant="outline" className="text-xs">{concert.genre}</Badge>}
-                        <Badge variant={concert.is_active ? 'default' : 'secondary'} className="text-xs">
-                          {concert.is_active ? 'Active' : 'Inactive'}
-                        </Badge>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                  <div className="flex gap-1">
-                    <Button variant="ghost" size="sm" title="Export contacts" onClick={async () => {
-                      const count = await exportContactsCsv('concert', concert.id, concert.title);
-                      if (count === null) toast.info('No attendees found');
-                      else toast.success(`Exported ${count} contacts`);
-                    }}>
-                      <Download className="h-4 w-4" />
-                    </Button>
-                    <Button variant="ghost" size="sm" asChild>
-                      <Link to={`/admin/concerts/${concert.id}`}><Edit className="h-4 w-4" /></Link>
-                    </Button>
-                    <Button variant="ghost" size="sm" onClick={() => deleteItem('live_performances', concert.id, 'Live Performance')}>
-                      <Trash2 className="h-4 w-4 text-destructive" />
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
+                    <div className="flex items-center gap-1">
+                      <TicketCountBadge sold={sold} capacity={capacity} />
+                      <Button variant="ghost" size="sm" title="Export contacts" onClick={async () => {
+                        const count = await exportContactsCsv('concert', concert.id, concert.title);
+                        if (count === null) toast.info('No attendees found');
+                        else toast.success(`Exported ${count} contacts`);
+                      }}>
+                        <Download className="h-4 w-4" />
+                      </Button>
+                      <Button variant="ghost" size="sm" asChild>
+                        <Link to={`/admin/concerts/${concert.id}`}><Edit className="h-4 w-4" /></Link>
+                      </Button>
+                      <Button variant="ghost" size="sm" onClick={() => deleteItem('live_performances', concert.id, 'Live Performance')}>
+                        <Trash2 className="h-4 w-4 text-destructive" />
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              );
+            })}
             {concerts.length === 0 && <p className="text-muted-foreground text-center py-8">No live performances yet.</p>}
           </div>
             </TabsContent>
