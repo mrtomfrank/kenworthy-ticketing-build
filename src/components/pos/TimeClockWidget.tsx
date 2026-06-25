@@ -98,13 +98,13 @@ export function TimeClockWidget() {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) { toast.error('Not signed in'); return; }
     const matched = upcoming.find((s) => s.id === reqShiftId);
-    const payload: Record<string, unknown> = {
+    const payload = {
       request_type: reqType,
       requester_id: user.id,
-      note: reqNote || null,
-      shift_id: reqShiftId || null,
-      shift_start: matched?.start_at || (reqStart ? new Date(reqStart).toISOString() : null),
-      shift_end: matched?.end_at || (reqEnd ? new Date(reqEnd).toISOString() : null),
+      note: reqNote || undefined,
+      shift_id: reqShiftId || undefined,
+      shift_start: matched?.start_at || (reqStart ? new Date(reqStart).toISOString() : undefined),
+      shift_end: matched?.end_at || (reqEnd ? new Date(reqEnd).toISOString() : undefined),
     };
     const { error } = await supabase.from('shift_requests').insert(payload);
     if (error) { toast.error(error.message); return; }
