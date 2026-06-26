@@ -9,9 +9,9 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Disc, Plus, Pencil, Trash2, RefreshCw } from 'lucide-react';
+import { Disc, Plus, Pencil, Trash2, RefreshCw, BarChart3 } from 'lucide-react';
 import { toast } from 'sonner';
-import { format, differenceInCalendarDays } from 'date-fns';
+import { format, differenceInCalendarDays, subDays } from 'date-fns';
 
 type Dvd = any;
 type Rental = any;
@@ -23,10 +23,12 @@ export default function DvdLibraryTab() {
       <TabsList>
         <TabsTrigger value="library"><Disc className="h-4 w-4 mr-1" /> Library</TabsTrigger>
         <TabsTrigger value="rentals"><RefreshCw className="h-4 w-4 mr-1" /> Active rentals</TabsTrigger>
+        <TabsTrigger value="reports"><BarChart3 className="h-4 w-4 mr-1" /> Reports</TabsTrigger>
         <TabsTrigger value="settings">Settings</TabsTrigger>
       </TabsList>
       <TabsContent value="library"><LibraryPanel /></TabsContent>
       <TabsContent value="rentals"><RentalsPanel /></TabsContent>
+      <TabsContent value="reports"><ReportsPanel /></TabsContent>
       <TabsContent value="settings"><SettingsPanel /></TabsContent>
     </Tabs>
   );
