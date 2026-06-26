@@ -10,6 +10,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { KenworthyLogo } from '@/components/brand/KenworthyLogo';
+import { NewsletterSignup } from '@/components/NewsletterSignup';
 
 export function Layout({ children }: { children: React.ReactNode }) {
   const { user, isAdmin, isStaff, isHost, isSuperadmin, signOut } = useAuth();
