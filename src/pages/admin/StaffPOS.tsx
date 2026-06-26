@@ -94,7 +94,7 @@ export default function StaffPOS() {
 
   useEffect(() => {
     if (authLoading) return;
-    if (!isAdmin) { navigate('/'); return; }
+    if (!isStaff) { navigate('/'); return; }
 
     loadDailyStats();
 
@@ -119,7 +119,7 @@ export default function StaffPOS() {
       );
     }
     loadShowings();
-  }, [isAdmin, authLoading, navigate]);
+  }, [isStaff, authLoading, navigate]);
 
   // Load seats + price tiers when showing changes
   useEffect(() => {
