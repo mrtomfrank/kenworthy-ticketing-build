@@ -1,7 +1,7 @@
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/lib/auth';
 import { Button } from '@/components/ui/button';
-import { Ticket, LogOut, Shield, ShieldCheck, User, CreditCard, Home, MapPin, Mail, Phone, Heart, Building2, ChevronDown } from 'lucide-react';
+import { Ticket, LogOut, Shield, ShieldCheck, User, CreditCard, Home, MapPin, Mail, Phone, Heart, Building2, ChevronDown, ShoppingCart, ScanLine } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -12,7 +12,7 @@ import {
 import { KenworthyLogo } from '@/components/brand/KenworthyLogo';
 
 export function Layout({ children }: { children: React.ReactNode }) {
-  const { user, isAdmin, isHost, isSuperadmin, signOut } = useAuth();
+  const { user, isAdmin, isStaff, isHost, isSuperadmin, signOut } = useAuth();
   const navigate = useNavigate();
 
   const handleSignOut = async () => {
@@ -82,6 +82,20 @@ export function Layout({ children }: { children: React.ReactNode }) {
                       <Shield className="h-4 w-4 mr-1" /> Admin
                     </Link>
                   </Button>
+                )}
+                {isStaff && !isAdmin && (
+                  <>
+                    <Button variant="ghost" size="sm" asChild className="h-10">
+                      <Link to="/admin/pos">
+                        <ShoppingCart className="h-4 w-4 mr-1" /> POS
+                      </Link>
+                    </Button>
+                    <Button variant="ghost" size="sm" asChild className="h-10">
+                      <Link to="/admin/scanner">
+                        <ScanLine className="h-4 w-4 mr-1" /> Scan
+                      </Link>
+                    </Button>
+                  </>
                 )}
                 {isSuperadmin && (
                   <Button variant="ghost" size="sm" asChild className="h-10 text-primary">
