@@ -40,7 +40,7 @@ interface ShowingOption {
 type PaymentStatus = 'idle' | 'processing' | 'completed' | 'failed';
 
 export default function StaffPOS() {
-  const { isAdmin, loading: authLoading } = useAuth();
+  const { isAdmin, isStaff, loading: authLoading } = useAuth();
   const navigate = useNavigate();
 
   const [showings, setShowings] = useState<ShowingOption[]>([]);
