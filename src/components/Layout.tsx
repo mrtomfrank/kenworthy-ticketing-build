@@ -55,6 +55,12 @@ export function Layout({ children }: { children: React.ReactNode }) {
             >
               Rentals
             </Link>
+            <Link
+              to="/dvds"
+              className="hidden md:inline font-display uppercase text-sm tracking-[0.25em] text-accent hover:text-primary transition-colors"
+            >
+              DVDs
+            </Link>
           </div>
 
           <nav className="flex items-center gap-1.5" aria-label="Primary">
