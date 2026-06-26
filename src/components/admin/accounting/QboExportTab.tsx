@@ -28,7 +28,7 @@ export default function QboExportTab() {
   const [to, setTo] = useState(() => new Date().toISOString().slice(0, 10));
   const [busy, setBusy] = useState(false);
   const [preview, setPreview] = useState<Aggregated[] | null>(null);
-  const [qbo, setQbo] = useState<{ connected: boolean; environment: string; realm_id?: string | null; token_expires_at?: string | null; configured: boolean } | null>(null);
+  const [qbo, setQbo] = useState<{ connected: boolean; environment: string; realm_id?: string | null; token_expires_at?: string | null; configured: boolean; redirect_uri?: string | null } | null>(null);
   const [qboBusy, setQboBusy] = useState(false);
 
   async function loadStatus() {
