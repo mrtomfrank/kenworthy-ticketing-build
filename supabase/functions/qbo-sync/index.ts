@@ -12,12 +12,17 @@ const INTUIT_TOKEN_URL = 'https://oauth.platform.intuit.com/oauth2/v1/tokens/bea
 const INTUIT_REVOKE_URL = 'https://developer.api.intuit.com/v2/oauth2/tokens/revoke';
 const SCOPES = 'com.intuit.quickbooks.accounting';
 
-function functionsBaseUrl(req: Request) {
+function configuredRedirectUri(req: Request) {
+  // Prefer an explicit secret so it always matches whatever is registered in Intuit.
+  const envUri = Deno.env.get('QBO_REDIRECT_URI');
+  if (envUri) return envUri;
+
   // Build the public functions URL for this request so the OAuth redirect_uri
   // matches whatever host Intuit calls us back on.
   const u = new URL(req.url);
-  return `${u.protocol}//${u.host}/functions/v1/qbo-sync`;
+  return `${u.protocol}//${u.host}/functions/v1/qbo-sync?action=oauth_callback`;
 }
+
 
 async function hmacSign(payload: string, secret: string) {
   const key = await crypto.subtle.importKey(
