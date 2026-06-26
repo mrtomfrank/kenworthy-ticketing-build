@@ -5,8 +5,9 @@ import { useAuth } from '@/lib/auth';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Film, Plus, Calendar, Ticket, Edit, Trash2, ShoppingCart, ScanLine, Music, PartyPopper, BarChart3, UtensilsCrossed, CreditCard, Download, Users, Archive, Wallet, KeyRound, FileText, Clock, Handshake, History, Disc } from 'lucide-react';
+import { Film, Plus, Calendar, Ticket, Edit, Trash2, ShoppingCart, ScanLine, Music, PartyPopper, BarChart3, UtensilsCrossed, CreditCard, Download, Users, Archive, Wallet, KeyRound, FileText, Clock, Handshake, History, Disc, Search } from 'lucide-react';
 import AnalyticsTab from '@/components/admin/AnalyticsTab';
 import ConcessionItemsTab from '@/components/admin/ConcessionItemsTab';
 import ConcessionMenusTab from '@/components/admin/ConcessionMenusTab';
@@ -35,6 +36,7 @@ export default function AdminDashboard() {
   const [showings, setShowings] = useState<any[]>([]);
   const [tickets, setTickets] = useState<any[]>([]);
   const [ticketCount, setTicketCount] = useState(0);
+  const [scheduleQuery, setScheduleQuery] = useState('');
 
   useEffect(() => {
     if (authLoading) return;
@@ -184,11 +186,22 @@ export default function AdminDashboard() {
         {/* Schedule Tab (Movies, Events, Performances) */}
         <TabsContent value="schedule">
           <Tabs defaultValue="movies" className="space-y-4">
-            <TabsList>
-              <TabsTrigger value="movies">Movies</TabsTrigger>
-              <TabsTrigger value="events">Events</TabsTrigger>
-              <TabsTrigger value="concerts">Performances</TabsTrigger>
-            </TabsList>
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <TabsList>
+                <TabsTrigger value="movies">Movies</TabsTrigger>
+                <TabsTrigger value="events">Events</TabsTrigger>
+                <TabsTrigger value="concerts">Performances</TabsTrigger>
+              </TabsList>
+              <div className="relative sm:max-w-xs sm:w-full">
+                <Search className="h-4 w-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+                <Input
+                  value={scheduleQuery}
+                  onChange={e => setScheduleQuery(e.target.value)}
+                  placeholder="Search title…"
+                  className="pl-9"
+                />
+              </div>
+            </div>
             <TabsContent value="movies">
           <div className="flex items-center justify-between mb-4">
             <h2 className="font-display text-xl font-bold">Movies</h2>
@@ -202,7 +215,7 @@ export default function AdminDashboard() {
             </div>
           </div>
           <div className="space-y-4">
-            {movies.map(movie => {
+            {movies.filter(m => !scheduleQuery || (m.title || '').toLowerCase().includes(scheduleQuery.toLowerCase())).map(movie => {
               const movieShowings = getMovieShowings(movie.id);
               return (
                 <Card key={movie.id} className="glass">
@@ -273,7 +286,7 @@ export default function AdminDashboard() {
             </Button>
           </div>
           <div className="space-y-3">
-            {events.map(event => {
+            {events.filter(e => !scheduleQuery || (e.title || '').toLowerCase().includes(scheduleQuery.toLowerCase())).map(event => {
               const { sold, capacity } = getTicketsSoldForEvent(event.id);
               return (
                 <Card key={event.id} className="glass">
@@ -321,7 +334,7 @@ export default function AdminDashboard() {
             </Button>
           </div>
           <div className="space-y-3">
-            {concerts.map(concert => {
+            {concerts.filter(c => !scheduleQuery || (c.title || '').toLowerCase().includes(scheduleQuery.toLowerCase())).map(concert => {
               const { sold, capacity } = getTicketsSoldForConcert(concert.id);
               return (
                 <Card key={concert.id} className="glass">
