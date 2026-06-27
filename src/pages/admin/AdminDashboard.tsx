@@ -87,6 +87,49 @@ export default function AdminDashboard() {
     return { sold, capacity };
   };
 
+  const uniqueRatings = Array.from(new Set(movies.map(m => m.rating).filter(Boolean))).sort();
+  const uniqueMovieGenres = Array.from(new Set(movies.map(m => m.genre).filter(Boolean))).sort();
+  const uniqueEventTypes = Array.from(new Set(events.map(e => e.ticket_type).filter(Boolean))).sort();
+  const uniqueConcertSubcategories = Array.from(new Set(concerts.map(c => c.subcategory).filter(Boolean))).sort();
+  const uniqueConcertGenres = Array.from(new Set(concerts.map(c => c.genre).filter(Boolean))).sort();
+
+  const resetScheduleFilters = () => {
+    setScheduleQuery('');
+    setStatusFilter('all');
+    setRatingFilter('all');
+    setGenreFilter('all');
+    setEventTypeFilter('all');
+    setConcertSubcategoryFilter('all');
+  };
+
+  const matchesSearch = (title: string) =>
+    !scheduleQuery || (title || '').toLowerCase().includes(scheduleQuery.toLowerCase());
+
+  const matchesStatus = (isActive: boolean) =>
+    statusFilter === 'all' ||
+    (statusFilter === 'active' && isActive) ||
+    (statusFilter === 'inactive' && !isActive);
+
+  const filteredMovies = movies.filter(m =>
+    matchesSearch(m.title) &&
+    matchesStatus(!!m.is_active) &&
+    (ratingFilter === 'all' || m.rating === ratingFilter) &&
+    (genreFilter === 'all' || m.genre === genreFilter)
+  );
+
+  const filteredEvents = events.filter(e =>
+    matchesSearch(e.title) &&
+    matchesStatus(!!e.is_active) &&
+    (eventTypeFilter === 'all' || e.ticket_type === eventTypeFilter)
+  );
+
+  const filteredConcerts = concerts.filter(c =>
+    matchesSearch(c.title) &&
+    matchesStatus(!!c.is_active) &&
+    (concertSubcategoryFilter === 'all' || c.subcategory === concertSubcategoryFilter) &&
+    (genreFilter === 'all' || c.genre === genreFilter)
+  );
+
   const TicketCountBadge = ({ sold, capacity }: { sold: number; capacity: number }) => (
     <Badge variant="secondary" className="text-xs whitespace-nowrap" title={`${sold} of ${capacity} tickets sold`}>
       {sold} / {capacity}
