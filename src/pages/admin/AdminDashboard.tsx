@@ -351,7 +351,7 @@ export default function AdminDashboard() {
             </div>
           </div>
           <div className="space-y-4">
-            {movies.filter(m => !scheduleQuery || (m.title || '').toLowerCase().includes(scheduleQuery.toLowerCase())).map(movie => {
+            {filteredMovies.map(movie => {
               const movieShowings = getMovieShowings(movie.id);
               return (
                 <Card key={movie.id} className="glass">
@@ -411,7 +411,7 @@ export default function AdminDashboard() {
                 </Card>
               );
             })}
-            {movies.length === 0 && <p className="text-muted-foreground text-center py-8">No movies yet.</p>}
+            {filteredMovies.length === 0 && <p className="text-muted-foreground text-center py-8">No movies match the filters.</p>}
           </div>
             </TabsContent>
             <TabsContent value="events">
