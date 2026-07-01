@@ -22,11 +22,13 @@ export default function DvdLibraryTab() {
     <Tabs defaultValue="library" className="space-y-4">
       <TabsList>
         <TabsTrigger value="library"><Disc className="h-4 w-4 mr-1" /> Library</TabsTrigger>
+        <TabsTrigger value="reserved"><RefreshCw className="h-4 w-4 mr-1" /> Reserved</TabsTrigger>
         <TabsTrigger value="rentals"><RefreshCw className="h-4 w-4 mr-1" /> Active rentals</TabsTrigger>
         <TabsTrigger value="reports"><BarChart3 className="h-4 w-4 mr-1" /> Reports</TabsTrigger>
         <TabsTrigger value="settings">Settings</TabsTrigger>
       </TabsList>
       <TabsContent value="library"><LibraryPanel /></TabsContent>
+      <TabsContent value="reserved"><ReservedPanel /></TabsContent>
       <TabsContent value="rentals"><RentalsPanel /></TabsContent>
       <TabsContent value="reports"><ReportsPanel /></TabsContent>
       <TabsContent value="settings"><SettingsPanel /></TabsContent>
@@ -36,13 +38,26 @@ export default function DvdLibraryTab() {
 
 function LibraryPanel() {
   const [items, setItems] = useState<Dvd[]>([]);
+  const [activeByDvd, setActiveByDvd] = useState<Record<string, Rental[]>>({});
   const [editing, setEditing] = useState<Dvd | null>(null);
   const [open, setOpen] = useState(false);
   const [q, setQ] = useState('');
 
   async function load() {
-    const { data, error } = await (supabase as any).from('dvds').select('*').order('title');
+    const [{ data, error }, { data: rentals }] = await Promise.all([
+      (supabase as any).from('dvds').select('*').order('title'),
+      (supabase as any)
+        .from('dvd_rentals')
+        .select('id, dvd_id, status, due_at, reserved_at, profiles(display_name, email)')
+        .in('status', ['reserved', 'checked_out', 'overdue']),
+    ]);
     if (error) toast.error(error.message); else setItems(data || []);
+    const map: Record<string, Rental[]> = {};
+    for (const r of rentals || []) {
+      if (!r.dvd_id) continue;
+      (map[r.dvd_id] ||= []).push(r);
+    }
+    setActiveByDvd(map);
   }
   useEffect(() => { load(); }, []);
 
@@ -105,6 +120,22 @@ function LibraryPanel() {
                 <Button size="sm" variant="outline" onClick={() => startEdit(d)}><Pencil className="h-4 w-4" /></Button>
                 <Button size="sm" variant="ghost" className="text-destructive" onClick={() => remove(d.id)}><Trash2 className="h-4 w-4" /></Button>
               </CardContent>
+              {(activeByDvd[d.id]?.length ?? 0) > 0 && (
+                <div className="px-3 pb-3 -mt-1 space-y-0.5">
+                  {activeByDvd[d.id].map(r => {
+                    const who = r.profiles?.display_name || r.profiles?.email || 'member';
+                    const label = r.status === 'reserved'
+                      ? 'Reserved by'
+                      : r.status === 'overdue' ? 'Overdue with' : 'Checked out to';
+                    const when = r.due_at ? ` • due ${format(new Date(r.due_at), 'MMM d')}` : '';
+                    return (
+                      <p key={r.id} className="text-xs text-muted-foreground font-serif">
+                        {label} {who}{when}
+                      </p>
+                    );
+                  })}
+                </div>
+              )}
             </Card>
           ))}
         </div>
@@ -144,9 +175,17 @@ function LibraryPanel() {
 }
 
 function RentalsPanel() {
+  return <RentalsList initialFilter="active" />;
+}
+
+function ReservedPanel() {
+  return <RentalsList initialFilter="reserved" lockFilter />;
+}
+
+function RentalsList({ initialFilter, lockFilter }: { initialFilter: string; lockFilter?: boolean }) {
   const [rentals, setRentals] = useState<Rental[]>([]);
   const [settings, setSettings] = useState<Settings | null>(null);
-  const [filter, setFilter] = useState<string>('active');
+  const [filter, setFilter] = useState<string>(initialFilter);
 
   async function load() {
     const [{ data: r }, { data: s }] = await Promise.all([
@@ -177,7 +216,7 @@ function RentalsPanel() {
 
   return (
     <div className="space-y-3">
-      <div className="flex items-center gap-2">
+      {!lockFilter && <div className="flex items-center gap-2">
         <Select value={filter} onValueChange={setFilter}>
           <SelectTrigger className="w-44"><SelectValue /></SelectTrigger>
           <SelectContent>
@@ -190,9 +229,11 @@ function RentalsPanel() {
             <SelectItem value="all">All</SelectItem>
           </SelectContent>
         </Select>
-      </div>
+      </div>}
       {filtered.length === 0 ? (
-        <p className="text-center py-8 text-muted-foreground font-serif">No rentals match this filter.</p>
+        <p className="text-center py-8 text-muted-foreground font-serif">
+          {lockFilter ? 'No active reservations.' : 'No rentals match this filter.'}
+        </p>
       ) : (
         <div className="grid gap-2">
           {filtered.map(r => {
