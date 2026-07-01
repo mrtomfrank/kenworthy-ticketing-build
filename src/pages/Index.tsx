@@ -118,7 +118,10 @@ export default function Index() {
     async function fetchAll() {
       const now = new Date().toISOString();
       const [moviesRes, eventsRes, concertsRes, showingsRes] = await Promise.all([
-        supabase.from('movies').select('*').eq('is_active', true),
+        supabase
+          .from('movies')
+          .select('id,title,description,poster_url,duration_minutes,rating,genre,is_active,created_at,updated_at,trailer_url,is_featured,release_year,release_label,pass_processing_fee')
+          .eq('is_active', true),
         supabase.from('events').select('*').eq('is_active', true),
         supabase.from('live_performances').select('*').eq('is_active', true),
         supabase
