@@ -38,13 +38,26 @@ export default function DvdLibraryTab() {
 
 function LibraryPanel() {
   const [items, setItems] = useState<Dvd[]>([]);
+  const [activeByDvd, setActiveByDvd] = useState<Record<string, Rental[]>>({});
   const [editing, setEditing] = useState<Dvd | null>(null);
   const [open, setOpen] = useState(false);
   const [q, setQ] = useState('');
 
   async function load() {
-    const { data, error } = await (supabase as any).from('dvds').select('*').order('title');
+    const [{ data, error }, { data: rentals }] = await Promise.all([
+      (supabase as any).from('dvds').select('*').order('title'),
+      (supabase as any)
+        .from('dvd_rentals')
+        .select('id, dvd_id, status, due_at, reserved_at, profiles(display_name, email)')
+        .in('status', ['reserved', 'checked_out', 'overdue']),
+    ]);
     if (error) toast.error(error.message); else setItems(data || []);
+    const map: Record<string, Rental[]> = {};
+    for (const r of rentals || []) {
+      if (!r.dvd_id) continue;
+      (map[r.dvd_id] ||= []).push(r);
+    }
+    setActiveByDvd(map);
   }
   useEffect(() => { load(); }, []);
 
@@ -107,6 +120,22 @@ function LibraryPanel() {
                 <Button size="sm" variant="outline" onClick={() => startEdit(d)}><Pencil className="h-4 w-4" /></Button>
                 <Button size="sm" variant="ghost" className="text-destructive" onClick={() => remove(d.id)}><Trash2 className="h-4 w-4" /></Button>
               </CardContent>
+              {(activeByDvd[d.id]?.length ?? 0) > 0 && (
+                <div className="px-3 pb-3 -mt-1 space-y-0.5">
+                  {activeByDvd[d.id].map(r => {
+                    const who = r.profiles?.display_name || r.profiles?.email || 'member';
+                    const label = r.status === 'reserved'
+                      ? 'Reserved by'
+                      : r.status === 'overdue' ? 'Overdue with' : 'Checked out to';
+                    const when = r.due_at ? ` • due ${format(new Date(r.due_at), 'MMM d')}` : '';
+                    return (
+                      <p key={r.id} className="text-xs text-muted-foreground font-serif">
+                        {label} {who}{when}
+                      </p>
+                    );
+                  })}
+                </div>
+              )}
             </Card>
           ))}
         </div>
