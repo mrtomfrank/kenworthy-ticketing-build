@@ -164,6 +164,13 @@ export default function Donate() {
       }
 
       setDone({ receiptUrl: data.receiptUrl ?? null, amount });
+      // Fire-and-forget Mailchimp sync — server-side subscribe also happens
+      // in square-donation for the anonymous case; this covers logged-in
+      // donors and refreshes their LTV/segmentation.
+      try {
+        const { syncMailchimpProfile } = await import('@/lib/mailchimp');
+        void syncMailchimpProfile({ extraTags: ['donor'], source: 'donation' });
+      } catch { /* noop */ }
     } catch (err) {
       console.error('Donation submit error:', err);
       toast.error(err instanceof Error ? err.message : 'Something went wrong.');
