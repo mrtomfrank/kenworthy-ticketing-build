@@ -8,7 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Film, Plus, Calendar, Ticket, Edit, Trash2, ShoppingCart, ScanLine, Music, PartyPopper, BarChart3, UtensilsCrossed, CreditCard, Download, Users, Archive, Wallet, KeyRound, FileText, Clock, Handshake, History, Disc, Search, X, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Film, Plus, Calendar, Ticket, Edit, Trash2, ShoppingCart, ScanLine, Music, PartyPopper, BarChart3, UtensilsCrossed, CreditCard, Download, Users, Archive, Wallet, KeyRound, FileText, Clock, Handshake, History, Disc, Search, X, ChevronLeft, ChevronRight, Mail } from 'lucide-react';
 import AnalyticsTab from '@/components/admin/AnalyticsTab';
 import ConcessionItemsTab from '@/components/admin/ConcessionItemsTab';
 import ConcessionMenusTab from '@/components/admin/ConcessionMenusTab';
@@ -24,6 +24,7 @@ import BoxOfficeReceiptsTab from '@/components/admin/BoxOfficeReceiptsTab';
 import LaborTab from '@/components/admin/LaborTab';
 import SponsorsTab from '@/components/admin/SponsorsTab';
 import DvdLibraryTab from '@/components/admin/DvdLibraryTab';
+import MailchimpTab from '@/components/admin/MailchimpTab';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
 import { exportContactsCsv } from '@/lib/exportContacts';
@@ -240,6 +241,7 @@ export default function AdminDashboard() {
             { value: 'labor', label: 'Staff', icon: Clock, show: isAdmin },
             { value: 'sponsors', label: 'Sponsors', icon: Handshake, show: true },
             { value: 'analytics', label: 'Analytics', icon: BarChart3, show: isAdmin },
+            { value: 'mailchimp', label: 'Mailchimp', icon: Mail, show: isAdmin },
             { value: 'bor', label: 'BOR', icon: FileText, show: true },
             { value: 'archive', label: 'Archive', icon: Archive, show: isSuperadmin },
           ].filter(t => t.show);
