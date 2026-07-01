@@ -239,19 +239,22 @@ export default function AdminDashboard() {
         </Card>
         <Card className="glass">
           <CardContent className="p-4 flex items-center gap-3">
-            <PartyPopper className="h-6 w-6 text-primary" />
+            <div className="flex -space-x-2">
+              <PartyPopper className="h-6 w-6 text-primary" />
+              <Music className="h-6 w-6 text-primary" />
+            </div>
             <div>
-              <p className="text-xl font-bold">{events.length}</p>
-              <p className="text-xs text-muted-foreground">Events</p>
+              <p className="text-xl font-bold">{events.length + concerts.length}</p>
+              <p className="text-xs text-muted-foreground">Live Events</p>
             </div>
           </CardContent>
         </Card>
         <Card className="glass">
           <CardContent className="p-4 flex items-center gap-3">
-            <Music className="h-6 w-6 text-primary" />
+            <Calendar className="h-6 w-6 text-primary" />
             <div>
-              <p className="text-xl font-bold">{concerts.length}</p>
-              <p className="text-xs text-muted-foreground">Live Performances</p>
+              <p className="text-xl font-bold">{showings.length}</p>
+              <p className="text-xs text-muted-foreground">Showings</p>
             </div>
           </CardContent>
         </Card>
