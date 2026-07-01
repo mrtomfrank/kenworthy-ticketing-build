@@ -424,6 +424,18 @@ export default function AdminDashboard() {
                     </>
                   )}
 
+                  <Select value={sortOrder} onValueChange={v => setSortOrder(v as any)}>
+                    <SelectTrigger className="w-[150px]">
+                      <SelectValue placeholder="Sort by" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="title_asc">Title A–Z</SelectItem>
+                      <SelectItem value="title_desc">Title Z–A</SelectItem>
+                      <SelectItem value="newest">Newest first</SelectItem>
+                      <SelectItem value="oldest">Oldest first</SelectItem>
+                    </SelectContent>
+                  </Select>
+
                   <Button variant="ghost" size="sm" onClick={resetScheduleFilters} className="h-9 px-2 text-muted-foreground">
                     <X className="h-4 w-4 mr-1" /> Reset
                   </Button>
