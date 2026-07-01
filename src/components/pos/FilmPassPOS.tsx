@@ -9,6 +9,7 @@ import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
 import { CreditCard, DollarSign, Search, ShoppingCart } from 'lucide-react';
 import { PaymentMethodSelector, type PaymentMethod } from './PaymentMethodSelector';
+import { subscribeToMailchimp } from '@/lib/mailchimp';
 
 interface PassType {
   id: string;
@@ -85,6 +86,16 @@ export function FilmPassPOS() {
 
       if (error) throw error;
       toast.success(`${selectedType.name} sold! Balance: $${selectedType.initial_balance.toFixed(2)}`);
+      // Fire-and-forget tag on the patron's Mailchimp record.
+      // Called anonymously (staff JWT isn't the patron's) — server forces
+      // 'pending' double opt-in and restricts tags.
+      if (patronEmail.trim().includes('@')) {
+        void subscribeToMailchimp({
+          email: patronEmail.trim(),
+          tags: ['film-pass'],
+          source: 'pos-film-pass',
+        });
+      }
       setPatronEmail('');
     } catch (err: any) {
       toast.error(err.message || 'Failed to sell pass');

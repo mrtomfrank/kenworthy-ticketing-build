@@ -1,1 +1,4 @@
 project_id = "lbgkfdqjcvjkteecatas"
+
+[functions.mailchimp-webhook]
+verify_jwt = false
