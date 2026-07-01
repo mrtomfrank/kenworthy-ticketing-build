@@ -678,6 +678,12 @@ export default function AdminDashboard() {
             <MailchimpTab />
           </TabsContent>
         )}
+
+        {isAdmin && (
+          <TabsContent value="lgl">
+            <LglTab />
+          </TabsContent>
+        )}
       </Tabs>
     </div>
   );
