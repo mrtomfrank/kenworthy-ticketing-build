@@ -9,7 +9,7 @@ import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
 import { toast } from 'sonner';
 import { User } from 'lucide-react';
-import { subscribeToMailchimp } from '@/lib/mailchimp';
+import { syncMailchimpProfile } from '@/lib/mailchimp';
 
 export default function Profile() {
   const { user, loading: authLoading } = useAuth();
@@ -47,15 +47,15 @@ export default function Profile() {
     if (error) toast.error(error.message);
     else {
       toast.success('Profile updated!');
-      if (marketingOptIn && !initialOptIn && user?.email) {
-        const [first, ...rest] = (displayName || '').trim().split(/\s+/);
-        subscribeToMailchimp({
-          email: user.email,
-          first_name: first ?? '',
-          last_name: rest.join(' '),
-          tags: ['newsletter'],
-          source: 'profile-settings',
-        });
+      if (marketingOptIn !== initialOptIn && user?.email) {
+        if (marketingOptIn) {
+          void syncMailchimpProfile({ extraTags: ['newsletter'], source: 'profile-settings' });
+        } else {
+          void syncMailchimpProfile({ unsubscribe: true, source: 'profile-settings' });
+        }
+      } else if (marketingOptIn && user?.email) {
+        // Refresh merge fields on any profile save
+        void syncMailchimpProfile({ source: 'profile-settings' });
       }
       setInitialOptIn(marketingOptIn);
     }
