@@ -227,32 +227,71 @@ export default function AdminDashboard() {
         </Card>
       </div>
 
-      <Tabs defaultValue="schedule" className="space-y-4">
+      <Tabs value={activeTopTab} onValueChange={setActiveTopTab} className="space-y-4">
         {(() => {
-          const tabCount = 5 /* schedule, concessions, passes, dvds, rentals */
-            + 1 /* sponsors */
-            + 1 /* bor */
-            + (isAdmin ? 2 : 0) /* labor, analytics */
-            + (isSuperadmin ? 1 : 0); /* archive */
+          const topTabs = [
+            { value: 'schedule', label: 'Schedule', icon: Calendar, show: true },
+            { value: 'concessions', label: 'Concessions', icon: UtensilsCrossed, show: true },
+            { value: 'passes', label: 'Passes', icon: CreditCard, show: true },
+            { value: 'dvds', label: 'DVDs', icon: Disc, show: true },
+            { value: 'rentals', label: 'Rentals', icon: KeyRound, show: true },
+            { value: 'labor', label: 'Staff', icon: Clock, show: isAdmin },
+            { value: 'sponsors', label: 'Sponsors', icon: Handshake, show: true },
+            { value: 'analytics', label: 'Analytics', icon: BarChart3, show: isAdmin },
+            { value: 'bor', label: 'BOR', icon: FileText, show: true },
+            { value: 'archive', label: 'Archive', icon: Archive, show: isSuperadmin },
+          ].filter(t => t.show);
+          const currentIdx = Math.max(0, topTabs.findIndex(t => t.value === activeTopTab));
+          const current = topTabs[currentIdx] ?? topTabs[0];
+          const goPrev = () => setActiveTopTab(topTabs[(currentIdx - 1 + topTabs.length) % topTabs.length].value);
+          const goNext = () => setActiveTopTab(topTabs[(currentIdx + 1) % topTabs.length].value);
+          const CurrentIcon = current.icon;
           return (
-            <TabsList className="grid w-full" style={{ gridTemplateColumns: `repeat(${tabCount}, minmax(0, 1fr))` }}>
-              <TabsTrigger value="schedule"><Calendar className="h-4 w-4 mr-1 inline" />Schedule</TabsTrigger>
-              <TabsTrigger value="concessions"><UtensilsCrossed className="h-4 w-4 mr-1 inline" />Concessions</TabsTrigger>
-              <TabsTrigger value="passes"><CreditCard className="h-4 w-4 mr-1 inline" />Passes</TabsTrigger>
-              <TabsTrigger value="dvds"><Disc className="h-4 w-4 mr-1 inline" />DVDs</TabsTrigger>
-              <TabsTrigger value="rentals"><KeyRound className="h-4 w-4 mr-1 inline" />Rentals</TabsTrigger>
-              {isAdmin && (
-                <TabsTrigger value="labor"><Clock className="h-4 w-4 mr-1 inline" />Staff</TabsTrigger>
-              )}
-              <TabsTrigger value="sponsors"><Handshake className="h-4 w-4 mr-1 inline" />Sponsors</TabsTrigger>
-              {isAdmin && (
-                <TabsTrigger value="analytics"><BarChart3 className="h-4 w-4 mr-1 inline" />Analytics</TabsTrigger>
-              )}
-              <TabsTrigger value="bor"><FileText className="h-4 w-4 mr-1 inline" />BOR</TabsTrigger>
-              {isSuperadmin && (
-                <TabsTrigger value="archive"><Archive className="h-4 w-4 mr-1 inline" />Archive</TabsTrigger>
-              )}
-            </TabsList>
+            <>
+              {/* Mobile: arrow pager */}
+              <div className="md:hidden flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={goPrev}
+                  aria-label="Previous section"
+                  className="shrink-0"
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                </Button>
+                <div className="flex-1 min-w-0 flex items-center justify-center gap-2 h-10 rounded-md border border-input bg-muted/40 px-3 font-display uppercase tracking-wider text-sm">
+                  <CurrentIcon className="h-4 w-4 text-primary" />
+                  <span className="truncate">{current.label}</span>
+                  <span className="text-xs text-muted-foreground ml-1 shrink-0">
+                    {currentIdx + 1}/{topTabs.length}
+                  </span>
+                </div>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={goNext}
+                  aria-label="Next section"
+                  className="shrink-0"
+                >
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
+              </div>
+
+              {/* Desktop: grid tabs */}
+              <TabsList
+                className="hidden md:grid w-full"
+                style={{ gridTemplateColumns: `repeat(${topTabs.length}, minmax(0, 1fr))` }}
+              >
+                {topTabs.map(t => {
+                  const Icon = t.icon;
+                  return (
+                    <TabsTrigger key={t.value} value={t.value}>
+                      <Icon className="h-4 w-4 mr-1 inline" />{t.label}
+                    </TabsTrigger>
+                  );
+                })}
+              </TabsList>
+            </>
           );
         })()}
 
