@@ -81,9 +81,9 @@ export default function FilmPassesTab() {
   return (
     <div className="space-y-6">
       {/* Pass Types */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <h2 className="font-display text-xl font-bold">Film Pass Types</h2>
-        <Button size="sm" onClick={() => setShowForm(!showForm)}>
+        <Button size="sm" className="w-full sm:w-auto" onClick={() => setShowForm(!showForm)}>
           <Plus className="h-4 w-4 mr-1" /> Add Pass Type
         </Button>
       </div>
@@ -91,7 +91,7 @@ export default function FilmPassesTab() {
       {showForm && (
         <Card className="glass">
           <CardContent className="p-4 space-y-4">
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>Name</Label>
                 <Input value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} placeholder="e.g. 10-Film Pass" />
@@ -120,12 +120,12 @@ export default function FilmPassesTab() {
       <div className="space-y-3">
         {passTypes.map(pt => (
           <Card key={pt.id} className="glass">
-            <CardContent className="p-4 flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <CreditCard className="h-5 w-5 text-primary" />
-                <div>
+            <CardContent className="p-4 flex items-start justify-between gap-3">
+              <div className="flex items-start gap-3 min-w-0 flex-1">
+                <CreditCard className="h-5 w-5 text-primary shrink-0 mt-0.5" />
+                <div className="min-w-0 flex-1">
                   <p className="font-medium">{pt.name}</p>
-                  <div className="flex gap-2 mt-1">
+                  <div className="flex flex-wrap gap-2 mt-1">
                     <Badge variant="outline" className="text-xs">${pt.price.toFixed(2)} sale price</Badge>
                     <Badge variant="outline" className="text-xs">${pt.initial_balance.toFixed(2)} balance</Badge>
                     {pt.expiration_days && <Badge variant="secondary" className="text-xs">{pt.expiration_days} day expiry</Badge>}
@@ -135,7 +135,7 @@ export default function FilmPassesTab() {
                   </div>
                 </div>
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 shrink-0">
                 <Switch checked={pt.is_active} onCheckedChange={() => toggleActive(pt.id, pt.is_active)} />
                 <Button variant="ghost" size="sm" onClick={() => deleteType(pt.id)}>
                   <Trash2 className="h-4 w-4 text-destructive" />
@@ -152,12 +152,12 @@ export default function FilmPassesTab() {
       <div className="space-y-3">
         {userPasses.map(up => (
           <Card key={up.id} className="glass">
-            <CardContent className="p-4 flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <DollarSign className="h-5 w-5 text-primary" />
-                <div>
+            <CardContent className="p-4">
+              <div className="flex items-start gap-3 min-w-0">
+                <DollarSign className="h-5 w-5 text-primary shrink-0 mt-0.5" />
+                <div className="min-w-0 flex-1">
                   <p className="font-medium">{up.profile?.display_name || 'Unknown User'}</p>
-                  <div className="flex gap-2 mt-1">
+                  <div className="flex flex-wrap gap-2 mt-1">
                     <Badge variant="outline" className="text-xs">{up.pass_type?.name}</Badge>
                     <Badge variant="secondary" className="text-xs">${Number(up.remaining_balance).toFixed(2)} remaining</Badge>
                     <Badge variant="outline" className="text-xs">{up.payment_method}</Badge>
