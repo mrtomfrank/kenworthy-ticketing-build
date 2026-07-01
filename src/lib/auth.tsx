@@ -26,26 +26,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [isSuperadmin, setIsSuperadmin] = useState(false);
   const [loading, setLoading] = useState(true);
 
-  const checkRoles = (userId: string) => {
-    supabase
+  const checkRoles = async (userId: string) => {
+    const { data } = await supabase
       .from('user_roles')
       .select('role')
-      .eq('user_id', userId)
-      .then(({ data }) => {
-        const roles = (data || []).map(r => r.role);
-        const superadmin = roles.includes('superadmin');
-        setIsSuperadmin(superadmin);
-        setIsAdmin(roles.includes('admin') || superadmin);
-        setIsStaff(roles.includes('staff') || roles.includes('admin') || superadmin);
-        setIsHost(roles.includes('host'));
-      });
+      .eq('user_id', userId);
+    const roles = (data || []).map(r => r.role);
+    const superadmin = roles.includes('superadmin');
+    setIsSuperadmin(superadmin);
+    setIsAdmin(roles.includes('admin') || superadmin);
+    setIsStaff(roles.includes('staff') || roles.includes('admin') || superadmin);
+    setIsHost(roles.includes('host'));
   };
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
       setSession(session);
       setUser(session?.user ?? null);
-      if (session?.user) checkRoles(session.user.id);
+      if (session?.user) await checkRoles(session.user.id);
       setLoading(false);
     });
 
@@ -53,14 +51,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setSession(session);
       setUser(session?.user ?? null);
       if (session?.user) {
-        checkRoles(session.user.id);
+        // Defer role fetch so we don't block the auth callback; still resolve loading after.
+        checkRoles(session.user.id).finally(() => setLoading(false));
       } else {
         setIsAdmin(false);
         setIsStaff(false);
         setIsHost(false);
         setIsSuperadmin(false);
+        setLoading(false);
       }
-      setLoading(false);
     });
 
     return () => subscription.unsubscribe();
