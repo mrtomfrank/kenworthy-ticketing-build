@@ -670,6 +670,12 @@ export default function AdminDashboard() {
         <TabsContent value="sponsors">
           <SponsorsTab />
         </TabsContent>
+
+        {isAdmin && (
+          <TabsContent value="mailchimp">
+            <MailchimpTab />
+          </TabsContent>
+        )}
       </Tabs>
     </div>
   );
