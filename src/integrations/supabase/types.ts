@@ -375,6 +375,10 @@ export type Database = {
           donor_name: string
           donor_phone: string | null
           id: string
+          lgl_constituent_id: string | null
+          lgl_gift_id: string | null
+          lgl_sync_error: string | null
+          lgl_synced_at: string | null
           message: string | null
           notify_email: string | null
           notify_name: string | null
@@ -392,6 +396,10 @@ export type Database = {
           donor_name: string
           donor_phone?: string | null
           id?: string
+          lgl_constituent_id?: string | null
+          lgl_gift_id?: string | null
+          lgl_sync_error?: string | null
+          lgl_synced_at?: string | null
           message?: string | null
           notify_email?: string | null
           notify_name?: string | null
@@ -409,6 +417,10 @@ export type Database = {
           donor_name?: string
           donor_phone?: string | null
           id?: string
+          lgl_constituent_id?: string | null
+          lgl_gift_id?: string | null
+          lgl_sync_error?: string | null
+          lgl_synced_at?: string | null
           message?: string | null
           notify_email?: string | null
           notify_name?: string | null
