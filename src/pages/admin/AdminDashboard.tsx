@@ -272,7 +272,7 @@ export default function AdminDashboard() {
       <Tabs value={activeTopTab} onValueChange={setActiveTopTab} className="space-y-4">
         {(() => {
           const topTabs = [
-            { value: 'schedule', label: 'Schedule', icon: Calendar, show: true },
+            { value: 'listings', label: 'Listings', icon: Calendar, show: true },
             { value: 'concessions', label: 'Concessions', icon: UtensilsCrossed, show: true },
             { value: 'passes', label: 'Passes', icon: CreditCard, show: true },
             { value: 'dvds', label: 'DVDs', icon: Disc, show: true },
