@@ -12,6 +12,25 @@ import {
 import { KenworthyLogo } from '@/components/brand/KenworthyLogo';
 import { NewsletterSignup } from '@/components/NewsletterSignup';
 
+const navLinkClass =
+  'font-display uppercase text-sm tracking-[0.25em] text-accent hover:text-primary transition-colors';
+
+const infoLinks: Array<[string, string]> = [
+  ['History', '/history'],
+  ['About Us', '/about'],
+  ['Silent Film Festival', '/silent-film-festival'],
+  ['Press', '/press'],
+  ['Hiring', '/hiring'],
+  ['Accessibility', '/accessibility'],
+  ['Plan a Visit', '/plan-a-visit'],
+];
+
+const supportLinks: Array<[string, string]> = [
+  ['Sponsors', '/sponsors'],
+  ['Donate', '/donate'],
+  ['Volunteer', '/volunteer'],
+];
+
 export function Layout({ children }: { children: React.ReactNode }) {
   const { user, isAdmin, isStaff, isHost, isSuperadmin, signOut } = useAuth();
   const navigate = useNavigate();
@@ -30,7 +49,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
     <div className="min-h-screen bg-background flex flex-col">
       <header className="sticky top-0 z-50 glass border-b border-accent/20">
         <div className="container flex h-[68px] items-center justify-between gap-4">
-          <div className="flex items-center gap-8 md:gap-12 min-w-0">
+          <div className="flex items-center gap-6 md:gap-8 min-w-0">
             <Link to="/" className="flex items-center group" aria-label="The Kenworthy — home">
               <KenworthyLogo
                 size="header"
@@ -38,28 +57,37 @@ export function Layout({ children }: { children: React.ReactNode }) {
                 loading="eager"
               />
             </Link>
-            <Link
-              to="/sponsors"
-              className="hidden sm:inline font-display uppercase text-sm tracking-[0.25em] text-accent hover:text-primary transition-colors"
-            >
-              Our Sponsors
+            <Link to="/calendar" className={`hidden sm:inline ${navLinkClass}`}>
+              Calendar
             </Link>
-            <Link
-              to="/history"
-              className="hidden sm:inline font-display uppercase text-sm tracking-[0.25em] text-accent hover:text-primary transition-colors"
-            >
-              History
+            <Link to="/rentals" className={`hidden md:inline ${navLinkClass}`}>
+              Theatre Rentals
             </Link>
-            <Link
-              to="/rentals"
-              className="hidden md:inline font-display uppercase text-sm tracking-[0.25em] text-accent hover:text-primary transition-colors"
-            >
-              Rentals
-            </Link>
-            <Link
-              to="/dvds"
-              className="hidden md:inline font-display uppercase text-sm tracking-[0.25em] text-accent hover:text-primary transition-colors"
-            >
+            <DropdownMenu>
+              <DropdownMenuTrigger className={`hidden md:inline-flex items-center gap-1 ${navLinkClass}`}>
+                Info <ChevronDown className="h-3.5 w-3.5 opacity-70" />
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="start" className="w-56 bg-background">
+                {infoLinks.map(([label, to]) => (
+                  <DropdownMenuItem key={to} asChild>
+                    <Link to={to}>{label}</Link>
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
+            <DropdownMenu>
+              <DropdownMenuTrigger className={`hidden md:inline-flex items-center gap-1 ${navLinkClass}`}>
+                Support <ChevronDown className="h-3.5 w-3.5 opacity-70" />
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="start" className="w-48 bg-background">
+                {supportLinks.map(([label, to]) => (
+                  <DropdownMenuItem key={to} asChild>
+                    <Link to={to}>{label}</Link>
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
+            <Link to="/dvds" className={`hidden lg:inline ${navLinkClass}`}>
               DVDs
             </Link>
           </div>
@@ -69,7 +97,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
               variant="outline"
               size="sm"
               asChild
-              className="hidden sm:inline-flex h-10 border-primary/60 text-primary hover:bg-primary hover:text-primary-foreground"
+              className="hidden lg:inline-flex h-10 border-primary/60 text-primary hover:bg-primary hover:text-primary-foreground"
             >
               <Link to="/donate">
                 <Heart className="h-4 w-4 mr-1" /> Donate

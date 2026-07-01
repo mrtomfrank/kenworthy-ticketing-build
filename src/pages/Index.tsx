@@ -10,6 +10,8 @@ import { InstagramFeed } from '@/components/home/InstagramFeed';
 import { RenovationCard } from '@/components/home/RenovationCard';
 import { HomeMarquee } from '@/components/home/HomeMarquee';
 import { SEO } from '@/components/SEO';
+import { SearchBar } from '@/components/SearchBar';
+import { filterFeed } from '@/hooks/useFeed';
 
 type ProductionType = 'movie' | 'event' | 'concert';
 
@@ -113,6 +115,8 @@ export default function Index() {
   const [loading, setLoading] = useState(true);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [selectedProduction, setSelectedProduction] = useState<any>(null);
+  const [query, setQuery] = useState('');
+  const filteredFeed = useMemo(() => filterFeed(feed, query), [feed, query]);
 
   useEffect(() => {
     async function fetchAll() {
@@ -167,11 +171,28 @@ export default function Index() {
       />
       <HomeMarquee />
 
+      {/* Guest search — filter the calendar and trailer rails by keyword */}
+      {!loading && feed.length > 0 && (
+        <section className="border-b border-accent/20 bg-background">
+          <div className="container py-5 flex flex-wrap items-center gap-4">
+            <p className="text-xs uppercase tracking-[0.2em] text-accent font-semibold">
+              Find a showing
+            </p>
+            <SearchBar value={query} onChange={setQuery} />
+            {query && (
+              <p className="font-serif text-sm text-muted-foreground">
+                {filteredFeed.length} match{filteredFeed.length === 1 ? '' : 'es'}
+              </p>
+            )}
+          </div>
+        </section>
+      )}
+
       {/* Clean upcoming list with a live preview pane. The full month
           calendar is tucked behind a "Calendar" button so the default view
           stays scannable. */}
-      {!loading && feed.length > 0 && (
-        <UpcomingList items={feed} onSelect={handleSelect} />
+      {!loading && filteredFeed.length > 0 && (
+        <UpcomingList items={filteredFeed} onSelect={handleSelect} />
       )}
 
       {/* Mobile: stacked. Desktop (lg+): split-scroll, three independently scrolling rails. */}
@@ -194,7 +215,7 @@ export default function Index() {
                   </p>
                 </div>
               ) : (
-                <TrailerFeed items={feed} onSelect={handleSelect} />
+                <TrailerFeed items={filteredFeed.length > 0 ? filteredFeed : feed} onSelect={handleSelect} />
               )}
             </div>
           </div>
@@ -209,7 +230,7 @@ export default function Index() {
                 <div className="h-64 bg-muted rounded animate-pulse" />
               </div>
             ) : (
-              <EditorialCalendar items={feed} onSelect={handleSelect} />
+              <EditorialCalendar items={filteredFeed} onSelect={handleSelect} />
             )}
           </div>
 
