@@ -52,6 +52,9 @@ export default function AdminDashboard() {
   const [concertSubcategoryFilter, setConcertSubcategoryFilter] = useState<string>(
     () => searchParams.get('csub') || 'all'
   );
+  const [sortOrder, setSortOrder] = useState<'title_asc' | 'title_desc' | 'newest' | 'oldest'>(
+    () => (searchParams.get('sort') as any) || 'title_asc'
+  );
 
   useEffect(() => {
     const next = new URLSearchParams(searchParams);
