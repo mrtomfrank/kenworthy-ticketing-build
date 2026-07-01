@@ -131,6 +131,26 @@ export default function AdminDashboard() {
     setGenreFilter('all');
     setEventTypeFilter('all');
     setConcertSubcategoryFilter('all');
+    setSortOrder('title_asc');
+  };
+
+  const sortItems = (items: any[]) => {
+    const sorted = [...items];
+    switch (sortOrder) {
+      case 'title_asc':
+        sorted.sort((a, b) => (a.title || '').localeCompare(b.title || ''));
+        break;
+      case 'title_desc':
+        sorted.sort((a, b) => (b.title || '').localeCompare(a.title || ''));
+        break;
+      case 'newest':
+        sorted.sort((a, b) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime());
+        break;
+      case 'oldest':
+        sorted.sort((a, b) => new Date(a.created_at || 0).getTime() - new Date(b.created_at || 0).getTime());
+        break;
+    }
+    return sorted;
   };
 
   const matchesSearch = (title: string) =>
