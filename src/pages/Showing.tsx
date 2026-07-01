@@ -414,7 +414,7 @@ export default function Showing() {
               lines: ticketData.map((t: any) => ({
                 id: t.id,
                 product_id: showing.id,
-                product_title: (showing.movie?.title || showing.event?.title || showing.live_performance?.title || 'Kenworthy showing'),
+                product_title: production?.title || 'Kenworthy showing',
                 quantity: 1,
                 price: subtotal / ticketCount,
                 category: productionType,
