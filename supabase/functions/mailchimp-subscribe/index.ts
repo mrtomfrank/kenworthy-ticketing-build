@@ -17,6 +17,9 @@ const BodySchema = z.object({
   // 'subscribed' for explicit opt-in, 'pending' for double opt-in flows
   status: z.enum(["subscribed", "pending"]).optional().default("subscribed"),
   source: z.string().trim().max(60).optional(),
+  merge_fields: z.record(z.union([z.string(), z.number(), z.null()])).optional(),
+  interests: z.record(z.boolean()).optional(),
+  unsubscribe: z.boolean().optional().default(false),
 });
 
 function md5Lower(email: string): string {
@@ -54,7 +57,7 @@ Deno.serve(async (req) => {
       status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
-  let { email, first_name, last_name, tags, status, source } = parsed.data;
+  let { email, first_name, last_name, tags, status, source, merge_fields, interests, unsubscribe } = parsed.data;
 
   // Authenticate: if a JWT is present it must be valid. Anonymous callers
   // (public newsletter form) are allowed but forced to double opt-in
@@ -86,11 +89,35 @@ Deno.serve(async (req) => {
     const allowedTags = new Set(["newsletter", "account-signup", "ticket-buyer", "donor", "film-pass", "dvd-renter"]);
     tags = (tags || []).filter((t) => allowedTags.has(t));
     if (tags.length === 0) tags = ["newsletter"];
+    // Anonymous callers cannot push merge fields or interests
+    merge_fields = undefined;
+    interests = undefined;
+    // Anonymous callers cannot unsubscribe someone else
+    unsubscribe = false;
   }
 
   const hash = md5Lower(email);
   const base = `https://${server}.api.mailchimp.com/3.0`;
   const auth = "Basic " + btoa(`anystring:${apiKey}`);
+
+  // Unsubscribe path: PATCH member status to 'unsubscribed' and return early.
+  if (unsubscribe) {
+    const unsubRes = await fetch(`${base}/lists/${audienceId}/members/${hash}`, {
+      method: "PATCH",
+      headers: { Authorization: auth, "Content-Type": "application/json" },
+      body: JSON.stringify({ status: "unsubscribed" }),
+    });
+    const j = await unsubRes.json().catch(() => ({}));
+    if (!unsubRes.ok && unsubRes.status !== 404) {
+      console.error("Mailchimp unsubscribe failed", unsubRes.status, j);
+      return new Response(JSON.stringify({ error: "Mailchimp unsubscribe failed", detail: j }), {
+        status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    return new Response(JSON.stringify({ ok: true, unsubscribed: true }), {
+      status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
 
   // PUT upserts the member; tags applied separately so we don't overwrite existing ones.
   const memberRes = await fetch(`${base}/lists/${audienceId}/members/${hash}`, {
@@ -103,7 +130,9 @@ Deno.serve(async (req) => {
       merge_fields: {
         ...(first_name ? { FNAME: first_name } : {}),
         ...(last_name ? { LNAME: last_name } : {}),
+        ...(merge_fields ?? {}),
       },
+      ...(interests ? { interests } : {}),
     }),
   });
   const memberJson = await memberRes.json().catch(() => ({}));
