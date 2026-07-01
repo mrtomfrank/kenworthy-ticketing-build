@@ -3,8 +3,10 @@ import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Switch } from '@/components/ui/switch';
+import { useAuth } from '@/lib/auth';
 import { toast } from 'sonner';
-import { Heart, RefreshCw, Loader2, CheckCircle2, AlertCircle } from 'lucide-react';
+import { Heart, RefreshCw, Loader2, CheckCircle2, AlertCircle, PauseCircle } from 'lucide-react';
 import { format } from 'date-fns';
 
 /**
@@ -18,24 +20,40 @@ import { format } from 'date-fns';
  *   - Seeing at a glance which donations synced and which failed
  */
 export default function LglTab() {
+  const { isSuperadmin } = useAuth();
   const [rows, setRows] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState<string | null>(null);
   const [backfilling, setBackfilling] = useState(false);
   const [progress, setProgress] = useState<{ done: number; total: number } | null>(null);
+  const [paused, setPaused] = useState<boolean | null>(null);
+  const [pauseBusy, setPauseBusy] = useState(false);
 
   async function load() {
     setLoading(true);
-    const { data } = await supabase
-      .from('donations')
-      .select('id, donor_name, donor_email, amount_cents, status, created_at, lgl_gift_id, lgl_constituent_id, lgl_synced_at, lgl_sync_error')
-      .eq('status', 'completed')
-      .order('created_at', { ascending: false })
-      .limit(200);
-    setRows(data || []);
+    const [donRes, cfgRes] = await Promise.all([
+      supabase.from('donations')
+        .select('id, donor_name, donor_email, amount_cents, status, created_at, lgl_gift_id, lgl_constituent_id, lgl_synced_at, lgl_sync_error')
+        .eq('status', 'completed')
+        .order('created_at', { ascending: false })
+        .limit(200),
+      supabase.from('app_config').select('value').eq('key', 'lgl_sync_paused').maybeSingle(),
+    ]);
+    setRows(donRes.data || []);
+    setPaused(((cfgRes.data?.value as any)?.paused) === true);
     setLoading(false);
   }
   useEffect(() => { load(); }, []);
+
+  async function togglePause(next: boolean) {
+    setPauseBusy(true);
+    const { error } = await supabase.from('app_config')
+      .upsert({ key: 'lgl_sync_paused', value: { paused: next }, updated_at: new Date().toISOString() });
+    setPauseBusy(false);
+    if (error) { toast.error(error.message); return; }
+    setPaused(next);
+    toast.success(next ? 'LGL sync paused — no gifts will post to Little Green Light.' : 'LGL sync resumed.');
+  }
 
   async function syncOne(id: string, force = false) {
     setBusy(id);
@@ -88,10 +106,30 @@ export default function LglTab() {
             by email) and each gift is posted with a note referencing the Kenworthy donation id.
             Use the backfill button below if any donations failed to sync in real time.
           </p>
+          {isSuperadmin && paused !== null && (
+            <div className="rounded-md border border-primary/30 bg-primary/5 p-3 flex items-start gap-3">
+              <PauseCircle className="h-5 w-5 text-primary mt-0.5" />
+              <div className="flex-1">
+                <div className="flex items-center gap-3">
+                  <Switch checked={paused} onCheckedChange={togglePause} disabled={pauseBusy} />
+                  <span className="font-medium text-sm">
+                    {paused ? 'LGL sync is PAUSED' : 'LGL sync is LIVE'}
+                  </span>
+                </div>
+                <p className="text-xs font-serif text-muted-foreground mt-1">
+                  Superadmin-only, dev-stage safety toggle. While paused, no constituents or
+                  gifts are created in the real Little Green Light account — safe for demos and
+                  test donations. Remove this control once Kenworthy is fully live on the
+                  platform.
+                </p>
+              </div>
+            </div>
+          )}
           <div className="flex flex-wrap gap-2 text-xs">
             <Badge variant="default">{synced} synced</Badge>
             <Badge variant="outline">{pending} pending</Badge>
             {failed > 0 && <Badge variant="destructive">{failed} failed</Badge>}
+            {paused && <Badge variant="destructive">Sync paused</Badge>}
           </div>
           <Button onClick={backfill} disabled={backfilling || pending + failed === 0}>
             {backfilling
