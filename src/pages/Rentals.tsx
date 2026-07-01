@@ -32,14 +32,27 @@ const DISCOUNTS = [
   { title: 'Consecutive days', detail: '10% off the base rental for three or more consecutive days. Some limitations apply.' },
 ];
 
-// Annual black-out dates (holidays / staff dark days).
-const BLACKOUTS: { date: string; label: string }[] = [
-  { date: `${new Date().getFullYear()}-12-24`, label: 'Christmas Eve' },
-  { date: `${new Date().getFullYear()}-12-25`, label: 'Christmas Day' },
-  { date: `${new Date().getFullYear()}-01-01`, label: 'New Year’s Day' },
-  { date: `${new Date().getFullYear()}-07-04`, label: 'Independence Day' },
-  { date: `${new Date().getFullYear()}-11-26`, label: 'Thanksgiving' },
-];
+// Annual black-out dates (holidays / staff dark days). If a date has already
+// passed this year, roll it forward to next year so the "next on the
+// calendar" list never surfaces holidays from the past.
+function makeBlackouts(): { date: string; label: string }[] {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const y = today.getFullYear();
+  const raw: { md: string; label: string }[] = [
+    { md: '12-24', label: 'Christmas Eve' },
+    { md: '12-25', label: 'Christmas Day' },
+    { md: '01-01', label: 'New Year’s Day' },
+    { md: '07-04', label: 'Independence Day' },
+    { md: '11-26', label: 'Thanksgiving' },
+  ];
+  return raw.map(({ md, label }) => {
+    const thisYear = isoToLocalDate(`${y}-${md}`);
+    const iso = thisYear < today ? `${y + 1}-${md}` : `${y}-${md}`;
+    return { date: iso, label };
+  });
+}
+const BLACKOUTS = makeBlackouts();
 
 function isoToLocalDate(iso: string) {
   const [y, m, d] = iso.split('-').map(Number);
