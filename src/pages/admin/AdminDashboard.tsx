@@ -52,6 +52,9 @@ export default function AdminDashboard() {
   const [concertSubcategoryFilter, setConcertSubcategoryFilter] = useState<string>(
     () => searchParams.get('csub') || 'all'
   );
+  const [sortOrder, setSortOrder] = useState<'title_asc' | 'title_desc' | 'newest' | 'oldest'>(
+    () => (searchParams.get('sort') as any) || 'title_asc'
+  );
 
   useEffect(() => {
     const next = new URLSearchParams(searchParams);
@@ -67,10 +70,11 @@ export default function AdminDashboard() {
     setOrDel('genre', genreFilter, 'all');
     setOrDel('etype', eventTypeFilter, 'all');
     setOrDel('csub', concertSubcategoryFilter, 'all');
+    setOrDel('sort', sortOrder, 'title_asc');
     if (next.toString() !== searchParams.toString()) {
       setSearchParams(next, { replace: true });
     }
-  }, [scheduleQuery, activeScheduleTab, activeTopTab, statusFilter, ratingFilter, genreFilter, eventTypeFilter, concertSubcategoryFilter]);
+  }, [scheduleQuery, activeScheduleTab, activeTopTab, statusFilter, ratingFilter, genreFilter, eventTypeFilter, concertSubcategoryFilter, sortOrder]);
 
   useEffect(() => {
     if (authLoading) return;
@@ -80,9 +84,9 @@ export default function AdminDashboard() {
 
   async function loadData() {
     const [moviesRes, eventsRes, concertsRes, showingsRes, ticketsRes] = await Promise.all([
-      supabase.from('movies').select('*').order('created_at', { ascending: false }),
-      supabase.from('events').select('*').order('created_at', { ascending: false }),
-      supabase.from('live_performances').select('*').order('created_at', { ascending: false }),
+      supabase.from('movies').select('*').order('title'),
+      supabase.from('events').select('*').order('title'),
+      supabase.from('live_performances').select('*').order('title'),
       supabase.from('showings').select('*, movies(title), events(title), live_performances(title), venues(name)').order('start_time', { ascending: false }),
       supabase.from('tickets').select('id, showing_id'),
     ]);
@@ -127,6 +131,26 @@ export default function AdminDashboard() {
     setGenreFilter('all');
     setEventTypeFilter('all');
     setConcertSubcategoryFilter('all');
+    setSortOrder('title_asc');
+  };
+
+  const sortItems = (items: any[]) => {
+    const sorted = [...items];
+    switch (sortOrder) {
+      case 'title_asc':
+        sorted.sort((a, b) => (a.title || '').localeCompare(b.title || ''));
+        break;
+      case 'title_desc':
+        sorted.sort((a, b) => (b.title || '').localeCompare(a.title || ''));
+        break;
+      case 'newest':
+        sorted.sort((a, b) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime());
+        break;
+      case 'oldest':
+        sorted.sort((a, b) => new Date(a.created_at || 0).getTime() - new Date(b.created_at || 0).getTime());
+        break;
+    }
+    return sorted;
   };
 
   const matchesSearch = (title: string) =>
@@ -137,25 +161,25 @@ export default function AdminDashboard() {
     (statusFilter === 'active' && isActive) ||
     (statusFilter === 'inactive' && !isActive);
 
-  const filteredMovies = movies.filter(m =>
+  const filteredMovies = sortItems(movies.filter(m =>
     matchesSearch(m.title) &&
     matchesStatus(!!m.is_active) &&
     (ratingFilter === 'all' || m.rating === ratingFilter) &&
     (genreFilter === 'all' || m.genre === genreFilter)
-  );
+  ));
 
-  const filteredEvents = events.filter(e =>
+  const filteredEvents = sortItems(events.filter(e =>
     matchesSearch(e.title) &&
     matchesStatus(!!e.is_active) &&
     (eventTypeFilter === 'all' || e.ticket_type === eventTypeFilter)
-  );
+  ));
 
-  const filteredConcerts = concerts.filter(c =>
+  const filteredConcerts = sortItems(concerts.filter(c =>
     matchesSearch(c.title) &&
     matchesStatus(!!c.is_active) &&
     (concertSubcategoryFilter === 'all' || c.subcategory === concertSubcategoryFilter) &&
     (genreFilter === 'all' || c.genre === genreFilter)
-  );
+  ));
 
   const TicketCountBadge = ({ sold, capacity }: { sold: number; capacity: number }) => (
     <Badge variant="secondary" className="text-xs whitespace-nowrap" title={`${sold} of ${capacity} tickets sold`}>
@@ -399,6 +423,18 @@ export default function AdminDashboard() {
                       </Select>
                     </>
                   )}
+
+                  <Select value={sortOrder} onValueChange={v => setSortOrder(v as any)}>
+                    <SelectTrigger className="w-[150px]">
+                      <SelectValue placeholder="Sort by" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="title_asc">Title A–Z</SelectItem>
+                      <SelectItem value="title_desc">Title Z–A</SelectItem>
+                      <SelectItem value="newest">Newest first</SelectItem>
+                      <SelectItem value="oldest">Oldest first</SelectItem>
+                    </SelectContent>
+                  </Select>
 
                   <Button variant="ghost" size="sm" onClick={resetScheduleFilters} className="h-9 px-2 text-muted-foreground">
                     <X className="h-4 w-4 mr-1" /> Reset
