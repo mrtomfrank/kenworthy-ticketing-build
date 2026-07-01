@@ -59,6 +59,7 @@ export default function AdminDashboard() {
     };
     setOrDel('q', scheduleQuery, '');
     setOrDel('tab', activeScheduleTab, 'movies');
+    setOrDel('section', activeTopTab, 'schedule');
     setOrDel('status', statusFilter, 'all');
     setOrDel('rating', ratingFilter, 'all');
     setOrDel('genre', genreFilter, 'all');
@@ -67,7 +68,7 @@ export default function AdminDashboard() {
     if (next.toString() !== searchParams.toString()) {
       setSearchParams(next, { replace: true });
     }
-  }, [scheduleQuery, activeScheduleTab, statusFilter, ratingFilter, genreFilter, eventTypeFilter, concertSubcategoryFilter]);
+  }, [scheduleQuery, activeScheduleTab, activeTopTab, statusFilter, ratingFilter, genreFilter, eventTypeFilter, concertSubcategoryFilter]);
 
   useEffect(() => {
     if (authLoading) return;
