@@ -1,0 +1,3 @@
+CREATE POLICY "Superadmins can insert app_config" ON public.app_config FOR INSERT TO authenticated WITH CHECK (public.has_role(auth.uid(), 'superadmin'));
+CREATE POLICY "Superadmins can update app_config" ON public.app_config FOR UPDATE TO authenticated USING (public.has_role(auth.uid(), 'superadmin')) WITH CHECK (public.has_role(auth.uid(), 'superadmin'));
+GRANT INSERT, UPDATE ON public.app_config TO authenticated;
