@@ -22,11 +22,13 @@ export default function DvdLibraryTab() {
     <Tabs defaultValue="library" className="space-y-4">
       <TabsList>
         <TabsTrigger value="library"><Disc className="h-4 w-4 mr-1" /> Library</TabsTrigger>
+        <TabsTrigger value="reserved"><RefreshCw className="h-4 w-4 mr-1" /> Reserved</TabsTrigger>
         <TabsTrigger value="rentals"><RefreshCw className="h-4 w-4 mr-1" /> Active rentals</TabsTrigger>
         <TabsTrigger value="reports"><BarChart3 className="h-4 w-4 mr-1" /> Reports</TabsTrigger>
         <TabsTrigger value="settings">Settings</TabsTrigger>
       </TabsList>
       <TabsContent value="library"><LibraryPanel /></TabsContent>
+      <TabsContent value="reserved"><ReservedPanel /></TabsContent>
       <TabsContent value="rentals"><RentalsPanel /></TabsContent>
       <TabsContent value="reports"><ReportsPanel /></TabsContent>
       <TabsContent value="settings"><SettingsPanel /></TabsContent>
