@@ -175,9 +175,17 @@ function LibraryPanel() {
 }
 
 function RentalsPanel() {
+  return <RentalsList initialFilter="active" />;
+}
+
+function ReservedPanel() {
+  return <RentalsList initialFilter="reserved" lockFilter />;
+}
+
+function RentalsList({ initialFilter, lockFilter }: { initialFilter: string; lockFilter?: boolean }) {
   const [rentals, setRentals] = useState<Rental[]>([]);
   const [settings, setSettings] = useState<Settings | null>(null);
-  const [filter, setFilter] = useState<string>('active');
+  const [filter, setFilter] = useState<string>(initialFilter);
 
   async function load() {
     const [{ data: r }, { data: s }] = await Promise.all([
@@ -208,7 +216,7 @@ function RentalsPanel() {
 
   return (
     <div className="space-y-3">
-      <div className="flex items-center gap-2">
+      {!lockFilter && <div className="flex items-center gap-2">
         <Select value={filter} onValueChange={setFilter}>
           <SelectTrigger className="w-44"><SelectValue /></SelectTrigger>
           <SelectContent>
@@ -221,9 +229,11 @@ function RentalsPanel() {
             <SelectItem value="all">All</SelectItem>
           </SelectContent>
         </Select>
-      </div>
+      </div>}
       {filtered.length === 0 ? (
-        <p className="text-center py-8 text-muted-foreground font-serif">No rentals match this filter.</p>
+        <p className="text-center py-8 text-muted-foreground font-serif">
+          {lockFilter ? 'No active reservations.' : 'No rentals match this filter.'}
+        </p>
       ) : (
         <div className="grid gap-2">
           {filtered.map(r => {
