@@ -96,7 +96,11 @@ export default function Showing() {
         type = 'concert';
         productionPromise = supabase.from('live_performances').select('*').eq('id', s.live_performance_id).single();
       } else {
-        productionPromise = supabase.from('movies').select('*').eq('id', s.movie_id).single();
+        productionPromise = supabase
+          .from('movies')
+          .select('id,title,description,poster_url,duration_minutes,rating,genre,is_active,created_at,updated_at,trailer_url,is_featured,release_year,release_label,pass_processing_fee')
+          .eq('id', s.movie_id)
+          .single();
       }
       setProductionType(type);
 

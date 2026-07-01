@@ -52,7 +52,7 @@ export default function Sponsors() {
   useEffect(() => {
     (supabase as any)
       .from('sponsorship_opportunities')
-      .select('*')
+      .select('id,slug,title,tagline,intro_text,hook_text,cta_label,section_heading,section_body,benefits,stats_text,price_text,availability_text,hero_image_url,display_order,is_active,created_by,created_at,updated_at')
       .eq('is_active', true)
       .order('display_order', { ascending: true })
       .then(({ data }: any) => setOpportunities(data || []));
