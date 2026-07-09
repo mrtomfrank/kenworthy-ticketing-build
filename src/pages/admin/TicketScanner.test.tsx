@@ -28,7 +28,7 @@ let selectResponse: any = { data: null, error: null };
 const maybeSingle = vi.fn(() => Promise.resolve(selectResponse));
 const selectEq = vi.fn(() => ({ maybeSingle }));
 const select = vi.fn(() => ({ eq: selectEq }));
-const from = vi.fn(() => ({ select, update }));
+const from = vi.fn((_table: string) => ({ select, update }));
 
 vi.mock('@/integrations/supabase/client', () => ({
   supabase: { from: (table: string) => from(table) },
