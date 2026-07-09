@@ -31,7 +31,7 @@ const select = vi.fn(() => ({ eq: selectEq }));
 const from = vi.fn(() => ({ select, update }));
 
 vi.mock('@/integrations/supabase/client', () => ({
-  supabase: { from: (...args: any[]) => from(...args) },
+  supabase: { from: (table: string) => from(table) },
 }));
 
 // AudioContext stub
