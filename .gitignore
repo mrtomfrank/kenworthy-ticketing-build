@@ -1,3 +1,9 @@
+# Private files — never commit these
+docs/CONTACTS.md
+.env
+.env.local
+.env.*.local
+
 # Logs
 logs
 *.log
