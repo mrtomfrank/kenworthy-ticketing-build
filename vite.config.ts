@@ -7,7 +7,7 @@ import path from "path";
 export default defineConfig(({ mode }) => ({
     define: {
     'import.meta.env.VITE_SUPABASE_URL': JSON.stringify('https://vlmslygnimfbamrtwvyo.supabase.co'),
-    'import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY': JSON.stringify('your-anon-key-here'),
+    'import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY': JSON.stringify('eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZsbXNseWduaW1mYmFtcnR3dnlvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM1MzYzNzUsImV4cCI6MjA5OTExMjM3NX0.qPBblAfE1PP5lMbXRtPid0wa_3J7urXOpRAosdAGtH4'),
   },
   server: {
     host: "::",
